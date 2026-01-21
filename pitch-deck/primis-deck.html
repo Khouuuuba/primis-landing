@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Primis Protocol — Pitch Deck</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #050506;
+            --bg-card: #0a0a0c;
+            --bg-terminal: #070709;
+            --text-primary: #F2E8DE;
+            --text-secondary: #a0a0a8;
+            --text-tertiary: #6c6c74;
+            --text-muted: #5c5c64;
+            --border-color: rgba(255,255,255,0.06);
+            --accent: #c87832;
+            --accent-glow: rgba(200, 120, 50, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        /* Slide Container */
+        .deck {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 80px 120px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+            background: var(--bg-primary);
+            overflow: hidden;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Background effects */
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+        }
+
+        .slide-glow {
+            position: absolute;
+            top: 50%;
+            right: -10%;
+            width: 60%;
+            height: 120%;
+            transform: translateY(-50%);
+            background: radial-gradient(ellipse at center, var(--accent-glow) 0%, transparent 70%);
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        /* Typography */
+        .slide-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 72px;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            margin-bottom: 24px;
+        }
+
+        h2 {
+            font-size: 56px;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            line-height: 1.15;
+            margin-bottom: 32px;
+        }
+
+        h3 {
+            font-size: 42px;
+            font-weight: 500;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+            margin-bottom: 24px;
+        }
+
+        .subtitle {
+            font-size: 28px;
+            font-weight: 400;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            max-width: 800px;
+        }
+
+        .highlight {
+            color: var(--accent);
+        }
+
+        .dim {
+            color: var(--text-secondary);
+        }
+
+        /* Bullets */
+        .bullets {
+            list-style: none;
+            margin-top: 40px;
+        }
+
+        .bullets li {
+            font-size: 28px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            padding-left: 32px;
+            position: relative;
+        }
+
+        .bullets li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 14px;
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+
+        /* Logo */
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 40px;
+            transform: rotate(15deg);
+        }
+
+        .logo-small {
+            width: 48px;
+            height: 48px;
+            transform: rotate(15deg);
+        }
+
+        /* Flywheel Diagram */
+        .flywheel {
+            width: 400px;
+            height: 400px;
+            position: relative;
+            margin: 40px auto;
+        }
+
+        .flywheel-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+            border: 2px solid rgba(242, 232, 222, 0.15);
+            border-radius: 50%;
+        }
+
+        .flywheel-node {
+            position: absolute;
+            font-size: 18px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+
+        .flywheel-node.top { top: 0; left: 50%; transform: translateX(-50%); }
+        .flywheel-node.right { top: 50%; right: 0; transform: translateY(-50%); }
+        .flywheel-node.bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
+        .flywheel-node.left { top: 50%; left: 0; transform: translateY(-50%); }
+
+        .flywheel-arrows {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+        }
+
+        /* Two Column Layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            margin-top: 60px;
+        }
+
+        .col-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            padding: 48px;
+        }
+
+        .col-card h4 {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 24px;
+        }
+
+        .col-card p {
+            font-size: 22px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        /* Quote/Insight */
+        .insight {
+            font-size: 48px;
+            font-weight: 500;
+            line-height: 1.3;
+            max-width: 900px;
+        }
+
+        .insight-sub {
+            font-size: 24px;
+            color: var(--text-muted);
+            margin-top: 40px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Flow Diagram */
+        .flow {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin: 48px 0;
+            flex-wrap: wrap;
+        }
+
+        .flow-step {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 20px 28px;
+            font-size: 18px;
+            color: var(--text-secondary);
+        }
+
+        .flow-arrow {
+            color: var(--text-muted);
+            font-size: 24px;
+        }
+
+        /* Comparison */
+        .comparison {
+            display: flex;
+            gap: 20px;
+            margin-top: 48px;
+        }
+
+        .comparison-item {
+            font-size: 24px;
+            color: var(--text-muted);
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+
+        .comparison-item.active {
+            color: var(--text-primary);
+            text-decoration: none;
+            opacity: 1;
+        }
+
+        /* Key Line */
+        .key-line {
+            font-size: 32px;
+            color: var(--text-primary);
+            margin-top: 48px;
+            padding-top: 48px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            max-width: 700px;
+        }
+
+        /* CTA */
+        .cta-box {
+            background: linear-gradient(135deg, rgba(200,120,50,0.15) 0%, rgba(200,120,50,0.05) 100%);
+            border: 1px solid rgba(200,120,50,0.3);
+            border-radius: 16px;
+            padding: 48px;
+            margin-top: 48px;
+            max-width: 700px;
+        }
+
+        .cta-box p {
+            font-size: 24px;
+            color: var(--text-secondary);
+        }
+
+        .cta-links {
+            display: flex;
+            gap: 32px;
+            margin-top: 24px;
+            align-items: center;
+        }
+
+        .cta-link {
+            font-size: 20px;
+            color: var(--text-primary);
+            font-weight: 500;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cta-link:hover {
+            color: var(--accent);
+        }
+
+        .x-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Progress Bar */
+        .progress {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: var(--accent);
+            transition: width 0.3s ease;
+            z-index: 100;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            bottom: 30px;
+            right: 40px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            width: 44px;
+            height: 44px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-primary);
+        }
+
+        .slide-count {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Fullscreen hint */
+        .hint {
+            position: fixed;
+            top: 30px;
+            right: 40px;
+            font-size: 12px;
+            color: var(--text-muted);
+            z-index: 100;
+        }
+
+        .hint kbd {
+            background: rgba(255,255,255,0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin: 0 2px;
+        }
+
+        /* ==================== */
+        /* ANIMATED MOCKUP STYLES */
+        /* ==================== */
+        
+        .demo-mockups {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 32px;
+        }
+
+        .mockup-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 12px;
+        }
+
+        .mockup-window {
+            background: var(--bg-terminal);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .mockup-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.015);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .mockup-dots {
+            display: flex;
+            gap: 5px;
+        }
+
+        .mockup-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            opacity: 0.35;
+        }
+
+        .mockup-title {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .mockup-body {
+            padding: 16px;
+            min-height: 320px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Portfolio Dashboard Styles */
+        .portfolio-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 12px;
+        }
+
+        .portfolio-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 9px;
+            color: var(--text-tertiary);
+        }
+
+        .status-dot {
+            width: 5px;
+            height: 5px;
+            background: #3b8;
+            border-radius: 50%;
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .earnings-primary {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: border-color 0.3s ease;
+        }
+
+        .earnings-primary.highlight {
+            border-color: rgba(200,120,50,0.4);
+        }
+
+        .earnings-label {
+            font-size: 9px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .earnings-value {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+            margin: 4px 0;
+        }
+
+        .earnings-breakdown {
+            display: flex;
+            gap: 20px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .breakdown-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .breakdown-label {
+            font-size: 8px;
+            color: var(--text-muted);
+        }
+
+        .breakdown-value {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.015);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+        .stat-label {
+            font-size: 8px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        /* Terminal Styles */
+        .terminal {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.8;
+        }
+
+        .terminal-line {
+            opacity: 0;
+            transform: translateY(4px);
+            transition: all 0.3s ease;
+        }
+
+        .terminal-line.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .terminal-prompt { color: var(--text-muted); }
+        .terminal-command { color: var(--text-secondary); }
+        .terminal-response { color: var(--text-muted); padding-left: 12px; }
+        .terminal-key { color: var(--text-tertiary); }
+        .terminal-string { color: var(--text-secondary); }
+        .terminal-number { color: var(--accent); }
+        .terminal-success { color: #3b8; }
+
+        .terminal-cursor {
+            display: inline-block;
+            width: 6px;
+            height: 12px;
+            background: var(--text-muted);
+            animation: blink 1.2s step-end infinite;
+            vertical-align: middle;
+            margin-left: 3px;
+            opacity: 0.5;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0; }
+        }
+
+        .terminal-status {
+            margin-top: 14px;
+            padding: 12px;
+            background: rgba(255,255,255,0.015);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .terminal-status.visible {
+            opacity: 1;
+        }
+
+        .status-title {
+            font-size: 8px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            margin-bottom: 4px;
+        }
+
+        .status-row-label { color: var(--text-muted); }
+        .status-row-value { color: var(--text-tertiary); }
+        .status-row-value.active { color: var(--text-secondary); }
+    </style>
+</head>
+<body>
+    <div class="deck" id="deck">
+        
+        <!-- Slide 1: Title -->
+        <div class="slide active" data-slide="1">
+            <div class="slide-glow"></div>
+            <svg class="logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs><mask id="ring1"><circle cx="50" cy="50" r="45" fill="white"/><ellipse cx="50" cy="48" rx="24" ry="20" fill="black"/></mask></defs>
+                <circle cx="50" cy="50" r="45" fill="#F2E8DE" mask="url(#ring1)"/>
+            </svg>
+            <h1>Primis Protocol</h1>
+            <p class="subtitle">Routing on-chain capital into AI compute</p>
+            <p class="subtitle dim" style="margin-top: 24px; font-size: 22px;">A decentralized system that uses yield to reduce the cost of AI infrastructure.</p>
+            
+            <div class="flywheel" style="position: absolute; right: 120px; top: 50%; transform: translateY(-50%); opacity: 0.8;">
+                <div class="flywheel-ring"></div>
+                <svg class="flywheel-arrows" viewBox="0 0 300 300">
+                    <defs><marker id="arrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="rgba(242,232,222,0.3)"/></marker></defs>
+                    <path d="M 180 30 A 120 120 0 0 1 270 150" fill="none" stroke="rgba(242,232,222,0.2)" stroke-width="1" marker-end="url(#arrow)"/>
+                    <path d="M 270 150 A 120 120 0 0 1 180 270" fill="none" stroke="rgba(242,232,222,0.2)" stroke-width="1" marker-end="url(#arrow)"/>
+                    <path d="M 120 270 A 120 120 0 0 1 30 150" fill="none" stroke="rgba(242,232,222,0.2)" stroke-width="1" marker-end="url(#arrow)"/>
+                    <path d="M 30 150 A 120 120 0 0 1 120 30" fill="none" stroke="rgba(242,232,222,0.2)" stroke-width="1" marker-end="url(#arrow)"/>
+                </svg>
+                <span class="flywheel-node top">Capital</span>
+                <span class="flywheel-node right">Yield</span>
+                <span class="flywheel-node bottom">Compute</span>
+                <span class="flywheel-node left">Revenue</span>
+            </div>
+        </div>
+
+        <!-- Slide 2: Problem -->
+        <div class="slide" data-slide="2">
+            <div class="slide-glow"></div>
+            <p class="slide-label">The Problem</p>
+            <h2>AI is expensive for one reason:<br><span class="highlight">compute pricing is static.</span></h2>
+            <ul class="bullets">
+                <li>Cloud GPU pricing assumes infinite demand and zero alternatives</li>
+                <li>AI startups burn capital before they can scale products</li>
+                <li>Billions in on-chain capital earn yield disconnected from real-world use</li>
+            </ul>
+        </div>
+
+        <!-- Slide 3: Insight -->
+        <div class="slide" data-slide="3">
+            <div class="slide-glow"></div>
+            <p class="slide-label">The Insight</p>
+            <p class="insight">Compute doesn't need to be <span class="dim">cheap</span>.<br>It needs to be <span class="highlight">subsidized</span>.</p>
+            <p class="insight-sub">No leverage. No emissions. Just value reallocation.</p>
+        </div>
+
+        <!-- Slide 4: Solution -->
+        <div class="slide" data-slide="4">
+            <div class="slide-glow"></div>
+            <p class="slide-label">The Solution</p>
+            <h2>Primis is an inverse-subsidization<br>engine for AI compute.</h2>
+            <div class="flow">
+                <div class="flow-step">Capital pooled</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">Base yield generated</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">Yield subsidizes compute</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">Usage fees return</div>
+            </div>
+            <p class="key-line">Primis is not a cloud.<br>It's a <span class="highlight">pricing layer</span> on top of compute.</p>
+        </div>
+
+        <!-- Slide 5: Flywheel -->
+        <div class="slide" data-slide="5">
+            <div class="slide-glow" style="right: auto; left: -10%;"></div>
+            <p class="slide-label">The Flywheel</p>
+            <h3>Why this compounds</h3>
+            
+            <div style="display: flex; align-items: center; gap: 100px; margin-top: 40px;">
+                <div class="flywheel" style="flex-shrink: 0;">
+                    <div class="flywheel-ring" style="border-color: rgba(200,120,50,0.3);"></div>
+                    <svg class="flywheel-arrows" viewBox="0 0 300 300">
+                        <defs><marker id="arrow2" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="rgba(200,120,50,0.6)"/></marker></defs>
+                        <path d="M 180 30 A 120 120 0 0 1 270 150" fill="none" stroke="rgba(200,120,50,0.4)" stroke-width="2" marker-end="url(#arrow2)"/>
+                        <path d="M 270 150 A 120 120 0 0 1 180 270" fill="none" stroke="rgba(200,120,50,0.4)" stroke-width="2" marker-end="url(#arrow2)"/>
+                        <path d="M 120 270 A 120 120 0 0 1 30 150" fill="none" stroke="rgba(200,120,50,0.4)" stroke-width="2" marker-end="url(#arrow2)"/>
+                        <path d="M 30 150 A 120 120 0 0 1 120 30" fill="none" stroke="rgba(200,120,50,0.4)" stroke-width="2" marker-end="url(#arrow2)"/>
+                    </svg>
+                    <span class="flywheel-node top" style="color: var(--accent);">Capital</span>
+                    <span class="flywheel-node right">Yield</span>
+                    <span class="flywheel-node bottom">Compute</span>
+                    <span class="flywheel-node left">Revenue</span>
+                </div>
+                <div>
+                    <ul class="bullets" style="margin-top: 0;">
+                        <li>Capital wants higher, safe yield</li>
+                        <li>AI builders want lower, predictable costs</li>
+                        <li>Each side funds the other</li>
+                        <li>Demand ↑ → Revenue ↑ → Yield ↑ → Capital ↑</li>
+                    </ul>
+                    <p class="key-line" style="border: none; padding-top: 24px;">Neither side needs to understand the other.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Who It's For -->
+        <div class="slide" data-slide="6">
+            <div class="slide-glow"></div>
+            <p class="slide-label">Who It's For</p>
+            <h3>Two users, one system</h3>
+            
+            <div class="two-col">
+                <div class="col-card">
+                    <h4>Capital Providers</h4>
+                    <p>Stake capital</p>
+                    <p>Earn base yield + compute usage income</p>
+                    <p>Exposure to AI demand without running GPUs</p>
+                </div>
+                <div class="col-card">
+                    <h4>AI Builders</h4>
+                    <p>Buy compute at lower, predictable prices</p>
+                    <p>No contracts, no minimums</p>
+                    <p>Pay per GPU-hour / batch job</p>
+                </div>
+            </div>
+            
+            <p class="key-line">Real users. Real incentives.</p>
+        </div>
+
+        <!-- Slide 7: Revenue Model -->
+        <div class="slide" data-slide="7">
+            <div class="slide-glow"></div>
+            <p class="slide-label">Revenue Model</p>
+            <h2>Primis monetizes<br><span class="highlight">compute usage.</span></h2>
+            <ul class="bullets" style="max-width: 600px;">
+                <li>Fees on AI compute usage</li>
+                <li>Revenue scales with demand</li>
+                <li>No token emissions required for sustainability</li>
+            </ul>
+        </div>
+
+        <!-- Slide 8: Why Now -->
+        <div class="slide" data-slide="8">
+            <div class="slide-glow"></div>
+            <p class="slide-label">Why Now</p>
+            <h2>This wins today</h2>
+            <ul class="bullets">
+                <li>AI compute demand is <span class="highlight">exploding</span></li>
+                <li>Cloud pricing isn't correcting itself</li>
+                <li>On-chain capital is mature and underutilized</li>
+            </ul>
+            <p class="key-line">Primis exists because this inefficiency is now visible.</p>
+        </div>
+
+        <!-- Slide 9: What We Built (ANIMATED) -->
+        <div class="slide" data-slide="9">
+            <div class="slide-glow"></div>
+            <p class="slide-label">What We Built</p>
+            
+            <div class="demo-mockups">
+                <!-- Capital Provider Dashboard -->
+                <div>
+                    <p class="mockup-label">Capital Provider View</p>
+                    <div class="mockup-window">
+                        <div class="mockup-header">
+                            <div class="mockup-dots">
+                                <span class="mockup-dot"></span>
+                                <span class="mockup-dot"></span>
+                                <span class="mockup-dot"></span>
+                            </div>
+                            <span class="mockup-title">primis.protocol/portfolio</span>
+                        </div>
+                        <div class="mockup-body" id="portfolio-mockup">
+                            <div class="portfolio-header">
+                                <div class="portfolio-status">
+                                    <span class="status-dot"></span>
+                                    <span>Connected</span>
+                                </div>
+                            </div>
+                            
+                            <div class="earnings-primary" id="earnings-card">
+                                <div class="earnings-label">Total Earned</div>
+                                <div class="earnings-value" id="total-earned">+0.0 SOL</div>
+                                <div class="earnings-breakdown">
+                                    <div class="breakdown-item">
+                                        <span class="breakdown-label">Yield from staking</span>
+                                        <span class="breakdown-value" id="yield-earned">+0.0 SOL</span>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <span class="breakdown-label">Revenue from compute</span>
+                                        <span class="breakdown-value" id="revenue-earned">+0.0 SOL</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="stats-row">
+                                <div class="stat-card">
+                                    <div class="stat-label">Effective APY</div>
+                                    <div class="stat-value" id="effective-apy">—</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-label">Staked</div>
+                                    <div class="stat-value" id="staked-value">0 SOL</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-label">Network Util.</div>
+                                    <div class="stat-value">63%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- AI Builder Terminal -->
+                <div>
+                    <p class="mockup-label">AI Builder View</p>
+                    <div class="mockup-window">
+                        <div class="mockup-header">
+                            <div class="mockup-dots">
+                                <span class="mockup-dot"></span>
+                                <span class="mockup-dot"></span>
+                                <span class="mockup-dot"></span>
+                            </div>
+                            <span class="mockup-title">terminal</span>
+                        </div>
+                        <div class="mockup-body">
+                            <div class="terminal" id="builder-terminal">
+                                <div class="terminal-line" id="term-1">
+                                    <span class="terminal-prompt">$ </span>
+                                    <span class="terminal-command">primis jobs submit --type fine-tune --model llama-3-8b</span>
+                                </div>
+                                <div class="terminal-line" id="term-2"><br></div>
+                                <div class="terminal-line" id="term-3">
+                                    <span class="terminal-response">Allocating GPUs...</span>
+                                </div>
+                                <div class="terminal-line" id="term-4">
+                                    <span class="terminal-response">Subsidy applied</span>
+                                </div>
+                                <div class="terminal-line" id="term-5"><br></div>
+                                <div class="terminal-line" id="term-6">
+                                    <span class="terminal-response">{</span>
+                                </div>
+                                <div class="terminal-line" id="term-7">
+                                    <span class="terminal-response">  <span class="terminal-key">"job_id"</span>: <span class="terminal-string">"job_8f7d3k2l"</span>,</span>
+                                </div>
+                                <div class="terminal-line" id="term-8">
+                                    <span class="terminal-response">  <span class="terminal-key">"status"</span>: <span class="terminal-string">"running"</span>,</span>
+                                </div>
+                                <div class="terminal-line" id="term-9">
+                                    <span class="terminal-response">  <span class="terminal-key">"estimated_cost"</span>: <span class="terminal-number">"$12.40"</span></span>
+                                </div>
+                                <div class="terminal-line" id="term-10">
+                                    <span class="terminal-response">}</span>
+                                </div>
+                                <div class="terminal-line" id="term-11"><br></div>
+                                <div class="terminal-line" id="term-12">
+                                    <span class="terminal-response terminal-success">Job running.</span>
+                                    <span class="terminal-cursor"></span>
+                                </div>
+                                
+                                <div class="terminal-status" id="term-status">
+                                    <div class="status-title">Job Status</div>
+                                    <div class="status-row">
+                                        <span class="status-row-label">GPU allocation</span>
+                                        <span class="status-row-value active">4x A100</span>
+                                    </div>
+                                    <div class="status-row">
+                                        <span class="status-row-label">Est. completion</span>
+                                        <span class="status-row-value">~2h 15m</span>
+                                    </div>
+                                    <div class="status-row">
+                                        <span class="status-row-label">Subsidy rate</span>
+                                        <span class="status-row-value active">Applied</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Why We Win -->
+        <div class="slide" data-slide="10">
+            <div class="slide-glow"></div>
+            <p class="slide-label">Why We Win</p>
+            <h2>Primis is different</h2>
+            
+            <div class="comparison">
+                <span class="comparison-item">GPU marketplace</span>
+                <span class="comparison-item">Cloud alternative</span>
+                <span class="comparison-item">Yield farm</span>
+            </div>
+            
+            <p class="insight" style="margin-top: 60px; font-size: 42px;">Primis is an <span class="highlight">economic system</span>.</p>
+        </div>
+
+        <!-- Slide 11: Closing -->
+        <div class="slide" data-slide="11">
+            <div class="slide-glow" style="opacity: 0.7;"></div>
+            <svg class="logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs><mask id="ring11"><circle cx="50" cy="50" r="45" fill="white"/><ellipse cx="50" cy="48" rx="24" ry="20" fill="black"/></mask></defs>
+                <circle cx="50" cy="50" r="45" fill="#F2E8DE" mask="url(#ring11)"/>
+            </svg>
+            <p class="insight">Primis turns yield into infrastructure —<br>and infrastructure into yield.</p>
+            
+            <div class="cta-box">
+                <p>We're building the pricing layer for AI compute.</p>
+                <div class="cta-links">
+                    <a href="https://primisprotocol.ai" class="cta-link" target="_blank">
+                        <svg class="x-icon" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(15deg);">
+                            <defs><mask id="link-ring"><circle cx="50" cy="50" r="45" fill="white"/><ellipse cx="50" cy="48" rx="24" ry="20" fill="black"/></mask></defs>
+                            <circle cx="50" cy="50" r="45" fill="currentColor" mask="url(#link-ring)"/>
+                        </svg>
+                        primisprotocol.ai
+                    </a>
+                    <a href="https://x.com/primisprotocol" class="cta-link" target="_blank">
+                        <svg class="x-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                        </svg>
+                        @primisprotocol
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress" id="progress"></div>
+
+    <!-- Navigation -->
+    <div class="nav">
+        <button class="nav-btn" onclick="prevSlide()">←</button>
+        <span class="slide-count"><span id="current">1</span> / <span id="total">11</span></span>
+        <button class="nav-btn" onclick="nextSlide()">→</button>
+    </div>
+
+    <!-- Hint -->
+    <div class="hint">
+        <kbd>←</kbd> <kbd>→</kbd> to navigate · <kbd>F</kbd> fullscreen
+    </div>
+
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        let currentSlide = 1;
+        
+        // Animation states
+        let portfolioStarted = false;
+        let terminalStarted = false;
+
+        function showSlide(n) {
+            if (n < 1) n = 1;
+            if (n > totalSlides) n = totalSlides;
+            
+            currentSlide = n;
+            
+            slides.forEach((slide, index) => {
+                slide.classList.toggle('active', index === n - 1);
+            });
+            
+            document.getElementById('current').textContent = n;
+            document.getElementById('progress').style.width = (n / totalSlides * 100) + '%';
+            
+            // Start animations on slide 9
+            if (n === 9 && !portfolioStarted) {
+                portfolioStarted = true;
+                terminalStarted = true;
+                setTimeout(animatePortfolio, 500);
+                setTimeout(animateTerminal, 500);
+            }
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function prevSlide() {
+            showSlide(currentSlide - 1);
+        }
+
+        // Portfolio Animation
+        function animatePortfolio() {
+            const totalEarned = document.getElementById('total-earned');
+            const yieldEarned = document.getElementById('yield-earned');
+            const revenueEarned = document.getElementById('revenue-earned');
+            const effectiveApy = document.getElementById('effective-apy');
+            const stakedValue = document.getElementById('staked-value');
+            const earningsCard = document.getElementById('earnings-card');
+            
+            let step = 0;
+            
+            function runStep() {
+                earningsCard.classList.remove('highlight');
+                
+                switch(step) {
+                    case 0:
+                        animateValue(stakedValue, 0, 1000, 1000, ' SOL', 0);
+                        break;
+                    case 1:
+                        earningsCard.classList.add('highlight');
+                        animateValue(totalEarned, 0, 18.4, 1200, ' SOL', 1, '+');
+                        break;
+                    case 2:
+                        animateValue(yieldEarned, 0, 14.2, 800, ' SOL', 1, '+');
+                        animateValue(revenueEarned, 0, 4.2, 800, ' SOL', 1, '+');
+                        effectiveApy.textContent = '7.4%';
+                        break;
+                    case 3:
+                        earningsCard.classList.add('highlight');
+                        animateValue(totalEarned, 18.4, 19.64, 600, ' SOL', 2, '+');
+                        animateValue(revenueEarned, 4.2, 5.44, 600, ' SOL', 2, '+');
+                        break;
+                }
+                step = (step + 1) % 4;
+            }
+            
+            function animateValue(el, start, end, duration, suffix, decimals, prefix = '') {
+                const startTime = performance.now();
+                function update(currentTime) {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const eased = 1 - Math.pow(1 - progress, 3);
+                    el.textContent = prefix + (start + (end - start) * eased).toFixed(decimals) + suffix;
+                    if (progress < 1) requestAnimationFrame(update);
+                }
+                requestAnimationFrame(update);
+            }
+            
+            runStep();
+            setInterval(runStep, 2500);
+        }
+        
+        // Terminal Animation
+        function animateTerminal() {
+            const lines = document.querySelectorAll('#builder-terminal .terminal-line');
+            const status = document.getElementById('term-status');
+            let currentLine = 0;
+            
+            function showNextLine() {
+                if (currentLine < lines.length) {
+                    lines[currentLine].classList.add('visible');
+                    currentLine++;
+                    if (currentLine === lines.length) {
+                        setTimeout(() => status.classList.add('visible'), 300);
+                    }
+                    setTimeout(showNextLine, currentLine < 5 ? 150 : 80);
+                } else {
+                    setTimeout(() => {
+                        lines.forEach(l => l.classList.remove('visible'));
+                        status.classList.remove('visible');
+                        currentLine = 0;
+                        setTimeout(showNextLine, 1000);
+                    }, 5000);
+                }
+            }
+            showNextLine();
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                prevSlide();
+            } else if (e.key === 'f' || e.key === 'F') {
+                e.preventDefault();
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                } else {
+                    document.documentElement.requestFullscreen();
+                }
+            }
+        });
+
+        // Click navigation
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.nav') || e.target.closest('button') || e.target.closest('a')) return;
+            
+            const x = e.clientX;
+            const width = window.innerWidth;
+            
+            if (x > width * 0.7) {
+                nextSlide();
+            } else if (x < width * 0.3) {
+                prevSlide();
+            }
+        });
+
+        // Initialize
+        document.getElementById('total').textContent = totalSlides;
+        showSlide(1);
+    </script>
+</body>
+</html>

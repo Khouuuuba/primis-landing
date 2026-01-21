@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="500" height="500" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Primis Protocol Logo -->
+    <!-- Color: Cream/Beige #F2E8DE -->
+    <!-- The logo is a ring with an oval cutout, slightly tilted -->
+    
+    <defs>
+        <mask id="primis-ring">
+            <circle cx="50" cy="50" r="45" fill="white"/>
+            <ellipse cx="50" cy="48" rx="24" ry="20" fill="black"/>
+        </mask>
+    </defs>
+    
+    <!-- Main logo shape -->
+    <g transform="rotate(15, 50, 50)">
+        <circle cx="50" cy="50" r="45" fill="#F2E8DE" mask="url(#primis-ring)"/>
+    </g>
+</svg>
