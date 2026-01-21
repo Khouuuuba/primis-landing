@@ -670,6 +670,435 @@
         .status-row-label { color: var(--text-muted); }
         .status-row-value { color: var(--text-tertiary); }
         .status-row-value.active { color: var(--text-secondary); }
+
+        /* ==================== */
+        /* MOBILE RESPONSIVE */
+        /* ==================== */
+        
+        @media (max-width: 1024px) {
+            .slide {
+                padding: 60px 60px;
+            }
+            
+            h1 {
+                font-size: 56px;
+            }
+            
+            h2 {
+                font-size: 42px;
+            }
+            
+            h3 {
+                font-size: 32px;
+            }
+            
+            .subtitle {
+                font-size: 22px;
+            }
+            
+            .bullets li {
+                font-size: 22px;
+            }
+            
+            .insight {
+                font-size: 36px;
+            }
+            
+            .flywheel {
+                width: 300px;
+                height: 300px;
+            }
+            
+            .flywheel-ring {
+                width: 220px;
+                height: 220px;
+            }
+            
+            .flywheel-arrows {
+                width: 220px;
+                height: 220px;
+            }
+            
+            .two-col {
+                gap: 40px;
+            }
+            
+            .demo-mockups {
+                gap: 24px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .slide {
+                padding: 40px 32px;
+                justify-content: flex-start;
+                padding-top: 80px;
+                overflow-y: auto;
+            }
+            
+            h1 {
+                font-size: 36px;
+                margin-bottom: 16px;
+            }
+            
+            h2 {
+                font-size: 28px;
+                margin-bottom: 20px;
+            }
+            
+            h3 {
+                font-size: 24px;
+                margin-bottom: 16px;
+            }
+            
+            .subtitle {
+                font-size: 16px;
+                line-height: 1.5;
+            }
+            
+            .slide-label {
+                font-size: 10px;
+                margin-bottom: 16px;
+            }
+            
+            .logo {
+                width: 56px;
+                height: 56px;
+                margin-bottom: 24px;
+            }
+            
+            .bullets {
+                margin-top: 24px;
+            }
+            
+            .bullets li {
+                font-size: 16px;
+                margin-bottom: 14px;
+                padding-left: 20px;
+            }
+            
+            .bullets li::before {
+                width: 6px;
+                height: 6px;
+                top: 10px;
+            }
+            
+            .insight {
+                font-size: 24px;
+            }
+            
+            .insight-sub {
+                font-size: 16px;
+                margin-top: 24px;
+            }
+            
+            .key-line {
+                font-size: 20px;
+                margin-top: 32px;
+                padding-top: 32px;
+            }
+            
+            /* Hide flywheel on mobile for title slide */
+            .slide[data-slide="1"] .flywheel {
+                display: none;
+            }
+            
+            /* Flywheel adjustments for slide 5 */
+            .flywheel {
+                width: 200px;
+                height: 200px;
+                margin: 24px auto;
+            }
+            
+            .flywheel-ring {
+                width: 150px;
+                height: 150px;
+            }
+            
+            .flywheel-arrows {
+                width: 150px;
+                height: 150px;
+            }
+            
+            .flywheel-node {
+                font-size: 12px;
+            }
+            
+            /* Flow diagram */
+            .flow {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+                margin: 24px 0;
+            }
+            
+            .flow-step {
+                padding: 14px 18px;
+                font-size: 14px;
+                width: 100%;
+            }
+            
+            .flow-arrow {
+                transform: rotate(90deg);
+                align-self: center;
+                font-size: 18px;
+            }
+            
+            /* Two column to single column */
+            .two-col {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                margin-top: 32px;
+            }
+            
+            .col-card {
+                padding: 24px;
+            }
+            
+            .col-card h4 {
+                font-size: 12px;
+                margin-bottom: 16px;
+            }
+            
+            .col-card p {
+                font-size: 16px;
+                margin-bottom: 10px;
+            }
+            
+            /* Comparison */
+            .comparison {
+                flex-direction: column;
+                gap: 12px;
+                margin-top: 32px;
+            }
+            
+            .comparison-item {
+                font-size: 18px;
+            }
+            
+            /* Demo mockups */
+            .demo-mockups {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                margin-top: 24px;
+            }
+            
+            .mockup-label {
+                font-size: 10px;
+                margin-bottom: 8px;
+            }
+            
+            .mockup-body {
+                padding: 12px;
+                min-height: 180px;
+            }
+            
+            /* Terminal mobile adjustments */
+            .terminal-content {
+                font-size: 8px;
+                line-height: 1.6;
+            }
+            
+            .terminal-prompt {
+                font-size: 8px;
+            }
+            
+            .terminal-status {
+                padding: 8px;
+                margin-top: 10px;
+            }
+            
+            .status-title {
+                font-size: 7px;
+            }
+            
+            .status-row {
+                font-size: 8px;
+            }
+            
+            /* Portfolio mockup mobile */
+            .earnings-primary {
+                padding: 12px;
+            }
+            
+            .earnings-value {
+                font-size: 16px;
+            }
+            
+            .earnings-label {
+                font-size: 8px;
+            }
+            
+            .breakdown-item {
+                font-size: 8px;
+            }
+            
+            .portfolio-status {
+                font-size: 8px;
+            }
+            
+            /* CTA box */
+            .cta-box {
+                padding: 28px;
+                margin-top: 32px;
+            }
+            
+            .cta-box p {
+                font-size: 18px;
+            }
+            
+            .cta-links {
+                flex-direction: column;
+                gap: 16px;
+                margin-top: 20px;
+            }
+            
+            .cta-link {
+                font-size: 16px;
+            }
+            
+            /* Navigation */
+            .nav {
+                bottom: 20px;
+                right: 20px;
+                gap: 12px;
+            }
+            
+            .nav-btn {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .slide-count {
+                font-size: 12px;
+            }
+            
+            .hint {
+                display: none;
+            }
+            
+            /* Progress bar */
+            .progress {
+                height: 2px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .slide {
+                padding: 32px 20px;
+                padding-top: 60px;
+            }
+            
+            h1 {
+                font-size: 28px;
+            }
+            
+            h2 {
+                font-size: 22px;
+            }
+            
+            h3 {
+                font-size: 20px;
+            }
+            
+            .subtitle {
+                font-size: 14px;
+            }
+            
+            .bullets li {
+                font-size: 14px;
+            }
+            
+            .insight {
+                font-size: 20px;
+            }
+            
+            .key-line {
+                font-size: 16px;
+            }
+            
+            .logo {
+                width: 48px;
+                height: 48px;
+            }
+            
+            .flywheel {
+                width: 160px;
+                height: 160px;
+            }
+            
+            .flywheel-ring {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .flywheel-arrows {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .flywheel-node {
+                font-size: 10px;
+            }
+            
+            .nav {
+                bottom: 16px;
+                right: 16px;
+                left: 16px;
+                justify-content: center;
+            }
+            
+            /* Mockup elements */
+            .mockup-body {
+                min-height: 150px;
+                padding: 10px;
+            }
+            
+            .mockup-header {
+                padding: 8px 10px;
+            }
+            
+            .mockup-title {
+                font-size: 8px;
+            }
+            
+            .mockup-dot {
+                width: 6px;
+                height: 6px;
+            }
+            
+            .terminal-content {
+                font-size: 7px;
+            }
+            
+            .earnings-value {
+                font-size: 14px;
+            }
+            
+            .col-card {
+                padding: 20px;
+            }
+            
+            .col-card p {
+                font-size: 14px;
+            }
+            
+            .cta-box p {
+                font-size: 16px;
+            }
+            
+            .cta-link {
+                font-size: 14px;
+            }
+        }
+        
+        /* Touch-friendly tap areas */
+        @media (hover: none) and (pointer: coarse) {
+            .nav-btn {
+                width: 48px;
+                height: 48px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1145,19 +1574,55 @@
             }
         });
 
-        // Click navigation
+        // Click navigation (desktop)
         document.addEventListener('click', (e) => {
             if (e.target.closest('.nav') || e.target.closest('button') || e.target.closest('a')) return;
             
-            const x = e.clientX;
-            const width = window.innerWidth;
-            
-            if (x > width * 0.7) {
-                nextSlide();
-            } else if (x < width * 0.3) {
-                prevSlide();
+            // Only use click navigation on larger screens
+            if (window.innerWidth > 768) {
+                const x = e.clientX;
+                const width = window.innerWidth;
+                
+                if (x > width * 0.7) {
+                    nextSlide();
+                } else if (x < width * 0.3) {
+                    prevSlide();
+                }
             }
         });
+
+        // Touch swipe navigation (mobile)
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
+
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
+            handleSwipe();
+        }, { passive: true });
+
+        function handleSwipe() {
+            const diffX = touchEndX - touchStartX;
+            const diffY = touchEndY - touchStartY;
+            
+            // Only register horizontal swipes (ignore vertical scrolling)
+            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+                if (diffX < 0) {
+                    // Swipe left = next slide
+                    nextSlide();
+                } else {
+                    // Swipe right = previous slide
+                    prevSlide();
+                }
+            }
+        }
 
         // Initialize
         document.getElementById('total').textContent = totalSlides;
