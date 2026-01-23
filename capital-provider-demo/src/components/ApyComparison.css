@@ -1,0 +1,133 @@
+.apy-comparison {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.apy-comparison:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.apy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.apy-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.apy-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--success);
+  background: rgba(51, 187, 136, 0.1);
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.apy-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.apy-bar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.apy-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.apy-bar-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.apy-bar-value {
+  font-size: 16px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.apy-bar-value.dim {
+  color: var(--text-muted);
+}
+
+.apy-bar-value.highlight {
+  color: var(--accent);
+}
+
+.apy-bar-track {
+  height: 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.apy-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.apy-bar-fill.regular {
+  background: var(--text-muted);
+}
+
+.apy-bar-fill.primis {
+  background: linear-gradient(90deg, var(--text-tertiary) 0%, var(--accent) 100%);
+}
+
+.apy-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.apy-breakdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.apy-breakdown-item span:last-child {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.breakdown-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.breakdown-dot.regular {
+  background: var(--text-muted);
+}
+
+.breakdown-dot.compute {
+  background: var(--accent);
+}

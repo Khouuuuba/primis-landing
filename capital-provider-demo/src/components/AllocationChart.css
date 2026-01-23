@@ -1,0 +1,132 @@
+.allocation-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.allocation-card:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.allocation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.allocation-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.allocation-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.allocation-tab {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.allocation-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-tertiary);
+}
+
+.allocation-tab.active {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.allocation-bar {
+  height: 10px;
+  background: var(--bg-secondary);
+  border-radius: 5px;
+  overflow: hidden;
+  display: flex;
+  margin-bottom: 16px;
+}
+
+.allocation-segment {
+  height: 100%;
+  transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.allocation-segment.staker {
+  background: var(--text-secondary);
+}
+
+.allocation-segment.subsidy {
+  background: var(--accent);
+}
+
+.allocation-segment.reserve {
+  background: var(--text-muted);
+}
+
+.allocation-legend {
+  display: flex;
+  gap: 24px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.legend-dot.staker {
+  background: var(--text-secondary);
+}
+
+.legend-dot.subsidy {
+  background: var(--accent);
+}
+
+.legend-dot.reserve {
+  background: var(--text-muted);
+}
+
+.legend-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.legend-value {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+@media (max-width: 600px) {
+  .allocation-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .allocation-legend {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

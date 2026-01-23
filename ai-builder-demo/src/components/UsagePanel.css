@@ -1,0 +1,343 @@
+.usage-panel {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 40px 32px;
+}
+
+.usage-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* Cards */
+.usage-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.card-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 16px;
+}
+
+.card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Balance Card */
+.balance-card {
+  grid-column: 1;
+}
+
+.balance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.balance-amount {
+  font-size: 36px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.add-credits-btn {
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.add-credits-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-hover);
+}
+
+.add-credits-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+/* Packages Dropdown */
+.packages-dropdown {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: slideDown 0.15s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.package-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.package-row:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: rgba(139, 92, 246, 0.05);
+}
+
+.package-row:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.package-row.recommended {
+  border-color: var(--accent);
+  background: rgba(139, 92, 246, 0.05);
+}
+
+.package-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.package-credits {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.rec-tag {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 3px 8px;
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: 4px;
+}
+
+.package-price {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.stripe-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-color);
+  margin-top: 8px;
+}
+
+.stripe-note svg {
+  opacity: 0.5;
+}
+
+.test-hint {
+  margin-left: 8px;
+  padding: 2px 6px;
+  background: rgba(251, 191, 36, 0.1);
+  color: #ca8a04;
+  border-radius: 3px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 10px;
+}
+
+/* Stats Card */
+.stats-card {
+  grid-column: 2;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* History Card */
+.history-card {
+  grid-column: 1 / -1;
+}
+
+.empty-state {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.transactions-list {
+  margin-top: 8px;
+}
+
+.tx-header {
+  display: grid;
+  grid-template-columns: 90px 1fr 100px 100px;
+  gap: 16px;
+  padding: 10px 0;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tx-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 100px 100px;
+  gap: 16px;
+  padding: 14px 0;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tx-row:last-child {
+  border-bottom: none;
+}
+
+.tx-type {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 4px 8px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.tx-type.purchase {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+.tx-type.usage {
+  background: rgba(156, 163, 175, 0.08);
+  color: #9ca3af;
+}
+
+.tx-type.refund {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.tx-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tx-amount {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.tx-amount.positive {
+  color: var(--success);
+}
+
+.tx-date {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .usage-panel {
+    padding: 24px 16px;
+  }
+
+  .usage-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .balance-card,
+  .stats-card,
+  .history-card {
+    grid-column: 1;
+  }
+
+  .balance-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .add-credits-btn {
+    width: 100%;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .tx-header,
+  .tx-row {
+    grid-template-columns: 70px 1fr 80px;
+  }
+
+  .tx-header span:nth-child(4),
+  .tx-row span:nth-child(4) {
+    display: none;
+  }
+}

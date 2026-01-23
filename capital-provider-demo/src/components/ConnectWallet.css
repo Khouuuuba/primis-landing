@@ -1,0 +1,302 @@
+.connect-wallet-page {
+  min-height: calc(100vh - 200px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.connect-content {
+  text-align: center;
+  max-width: 440px;
+  animation: fadeIn 0.6s ease;
+}
+
+.connect-logo {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 28px;
+}
+
+.connect-logo svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(15deg);
+  filter: drop-shadow(0 0 40px rgba(242, 232, 222, 0.12));
+}
+
+.connect-title {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin-bottom: 10px;
+  color: var(--text-primary);
+}
+
+.connect-subtitle {
+  font-size: 15px;
+  color: var(--text-tertiary);
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+
+/* Network badge - subtle */
+.network-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(200, 120, 50, 0.08);
+  border: 1px solid rgba(200, 120, 50, 0.15);
+  border-radius: 100px;
+  margin-bottom: 32px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.network-badge-large {
+  width: 6px;
+  height: 6px;
+  background: #c87832;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Features - cleaner cards */
+.connect-features {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 32px;
+  text-align: left;
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.feature:hover {
+  border-color: var(--border-hover);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.feature-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.feature-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.feature-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.feature-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.feature-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ========== LOGIN BUTTON ========== */
+
+.login-btn {
+  width: 100%;
+  height: 50px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  letter-spacing: -0.01em;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.login-btn:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--text-tertiary);
+}
+
+.login-btn:active {
+  transform: scale(0.99);
+}
+
+/* ========== WALLET MODAL OVERRIDES ========== */
+
+.wallet-adapter-modal-wrapper {
+  background: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.wallet-adapter-modal-container {
+  background: #0a0a0b !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 32px 100px rgba(0, 0, 0, 0.6) !important;
+  max-width: 360px !important;
+  padding: 24px !important;
+}
+
+.wallet-adapter-modal-title {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: #f2e8de !important;
+  letter-spacing: -0.02em !important;
+  margin-bottom: 4px !important;
+}
+
+.wallet-adapter-modal-list {
+  margin: 16px 0 0 0 !important;
+  padding: 0 !important;
+}
+
+.wallet-adapter-modal-list li {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button,
+.wallet-adapter-modal-list button {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 10px !important;
+  padding: 12px 14px !important;
+  margin: 6px 0 !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #f2e8de !important;
+  transition: all 0.12s ease !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button:hover,
+.wallet-adapter-modal-list button:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button-start-icon,
+.wallet-adapter-modal-list img {
+  width: 24px !important;
+  height: 24px !important;
+  margin-right: 12px !important;
+}
+
+.wallet-adapter-modal-button-close {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+  top: 20px !important;
+  right: 20px !important;
+  transition: color 0.12s ease !important;
+}
+
+.wallet-adapter-modal-button-close:hover {
+  color: #f2e8de !important;
+}
+
+/* Remove any purple/brand colors from wallet adapter */
+.wallet-adapter-button,
+.wallet-adapter-button-trigger {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.wallet-adapter-dropdown {
+  background: #0a0a0b !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.wallet-adapter-dropdown-list {
+  background: #0a0a0b !important;
+}
+
+.wallet-adapter-dropdown-list-item {
+  background: transparent !important;
+  color: #f2e8de !important;
+}
+
+.wallet-adapter-dropdown-list-item:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Footer note */
+.faucet-note {
+  margin-top: 20px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.faucet-note a {
+  color: var(--text-tertiary);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.faucet-note a:hover {
+  color: var(--text-primary);
+  border-bottom-color: var(--text-muted);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(8px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .connect-content {
+    max-width: 100%;
+  }
+  
+  .connect-title {
+    font-size: 24px;
+  }
+  
+  .feature {
+    padding: 12px 14px;
+  }
+}
