@@ -139,6 +139,26 @@
             transform: rotate(18deg);
         }
 
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-link {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 9px 16px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+        }
+
         .nav-cta {
             font-size: 0.8125rem;
             font-weight: 500;
@@ -1202,7 +1222,10 @@
                     <circle cx="50" cy="50" r="45" fill="#F2E8DE" mask="url(#nav-ring)"/>
                 </svg>
             </div>
-            <a href="#" class="nav-cta" data-modal-trigger>Request access</a>
+            <div class="nav-links">
+                <a href="roadmap.html" class="nav-link">Roadmap</a>
+                <a href="#" class="nav-cta" data-modal-trigger>Request access</a>
+            </div>
         </div>
     </nav>
 
@@ -1226,6 +1249,7 @@
             <p class="hero-anchor">Designed to run regardless of market cycles.</p>
             <div class="hero-cta">
                 <button class="btn-primary" data-modal-trigger>Request access</button>
+                <a href="roadmap.html" class="btn-secondary">View roadmap</a>
             </div>
         </div>
     </section>
