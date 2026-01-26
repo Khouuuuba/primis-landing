@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import './Modal.css'
 
-const MINIMUM_STAKE = 10 // 10 SOL minimum for first deposit
+const MINIMUM_STAKE = 1 // 1 SOL minimum for devnet beta
 
 function DepositModal({ wallet, onDeposit, onClose, isLoading, currentStake = 0 }) {
   const [amount, setAmount] = useState('')

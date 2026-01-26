@@ -9,7 +9,7 @@ export const PROGRAM_ID = new PublicKey('Bp4pmvckwNicvQrxafeCgrM35WnTE1qz2MbvGWA
 export const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
 
 // Constants
-export const MINIMUM_STAKE = 10; // 10 SOL
+export const MINIMUM_STAKE = 1; // 1 SOL minimum for devnet beta
 export const LAMPORTS = LAMPORTS_PER_SOL;
 
 // PDA derivation functions

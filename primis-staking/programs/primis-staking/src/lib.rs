@@ -4,7 +4,7 @@ use anchor_lang::system_program;
 declare_id!("Bp4pmvckwNicvQrxafeCgrM35WnTE1qz2MbvGWA4GhDf");
 
 // Constants based on user decisions
-pub const MINIMUM_STAKE: u64 = 10 * 1_000_000_000; // 10 SOL in lamports
+pub const MINIMUM_STAKE: u64 = 1 * 1_000_000_000; // 1 SOL in lamports (lowered for devnet beta)
 pub const STAKER_YIELD_BPS: u16 = 7000;  // 70% to stakers
 pub const SUBSIDY_BPS: u16 = 2000;       // 20% for AI builder subsidy
 pub const RESERVE_BPS: u16 = 1000;       // 10% protocol reserve
@@ -430,7 +430,7 @@ pub struct YieldClaimed {
 
 #[error_code]
 pub enum PrimisError {
-    #[msg("Stake amount is below minimum of 10 SOL")]
+    #[msg("Stake amount is below minimum of 1 SOL")]
     BelowMinimumStake,
     #[msg("Insufficient stake balance")]
     InsufficientStake,
