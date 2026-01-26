@@ -1,14 +1,12 @@
 {
-  "redirects": [
+  "rewrites": [
     {
       "source": "/capitalprovider",
-      "destination": "https://primis-provider.vercel.app/",
-      "permanent": false
+      "destination": "https://primis-provider.vercel.app/"
     },
     {
       "source": "/capitalprovider/:path*",
-      "destination": "https://primis-provider.vercel.app/:path*",
-      "permanent": false
+      "destination": "https://primis-provider.vercel.app/:path*"
     }
   ]
 }
