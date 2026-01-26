@@ -7,7 +7,7 @@ const DISTRIBUTION_INTERVAL_MINUTES = 10
 function StatsBar() {
   const [stats, setStats] = useState({
     tvl: 0,
-    networkRevenue: 0
+    stakerRevenue: 0
   })
   const [countdown, setCountdown] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -19,11 +19,12 @@ function StatsBar() {
       try {
         const res = await fetch(`${API_URL}/api/stats`)
         const data = await res.json()
+        console.log('[StatsBar] API response:', data) // Debug log
         setStats({
           tvl: data.totalStakedSol || 0,
-          networkRevenue: data.networkRevenueSol || 0
+          stakerRevenue: data.stakerRevenueSol || 0
         })
-        setDisplayRevenue(data.networkRevenueSol || 0)
+        setDisplayRevenue(data.stakerRevenueSol || 0)
         setLoading(false)
       } catch (error) {
         console.error('Failed to fetch stats:', error)
@@ -73,13 +74,13 @@ function StatsBar() {
 
   // Animate revenue ticking up
   useEffect(() => {
-    if (stats.networkRevenue > 0) {
+    if (stats.stakerRevenue > 0) {
       const interval = setInterval(() => {
         setDisplayRevenue(prev => prev + 0.000001)
       }, 500)
       return () => clearInterval(interval)
     }
-  }, [stats.networkRevenue])
+  }, [stats.stakerRevenue])
 
   const formatSOL = (sol) => {
     if (sol >= 1000) return `${(sol / 1000).toFixed(1)}K`

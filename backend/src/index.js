@@ -68,34 +68,58 @@ app.get('/api/stats', async (req, res) => {
     // Get LIVE on-chain vault state (TVL and staker count)
     let totalStakedSol = 0
     let totalStakers = 0
+    let dataSource = 'none'
+    let debugInfo = {}
     
     try {
+      console.log('[/api/stats] Attempting to fetch on-chain vault state...')
       const vaultState = await getVaultState()
+      console.log('[/api/stats] On-chain vault state:', JSON.stringify(vaultState))
       totalStakedSol = vaultState.totalStaked / LAMPORTS_PER_SOL
       totalStakers = vaultState.stakerCount
+      dataSource = 'on-chain'
+      debugInfo.vaultState = vaultState
     } catch (onChainError) {
-      console.warn('Failed to fetch on-chain state, falling back to database:', onChainError.message)
+      console.error('[/api/stats] Failed to fetch on-chain state:', onChainError.message)
+      debugInfo.onChainError = onChainError.message
+      dataSource = 'database-fallback'
+      
       // Fallback to database if on-chain query fails
-      const latestDist = await pool.query(`
-        SELECT total_staked_lamports, staker_count
-        FROM yield_distributions 
-        ORDER BY created_at DESC 
-        LIMIT 1
-      `)
-      if (latestDist.rows[0]) {
-        totalStakedSol = Number(latestDist.rows[0].total_staked_lamports) / LAMPORTS_PER_SOL
-        totalStakers = latestDist.rows[0].staker_count
+      try {
+        const latestDist = await pool.query(`
+          SELECT total_staked_lamports, staker_count
+          FROM yield_distributions 
+          ORDER BY created_at DESC 
+          LIMIT 1
+        `)
+        if (latestDist.rows[0]) {
+          totalStakedSol = Number(latestDist.rows[0].total_staked_lamports) / LAMPORTS_PER_SOL
+          totalStakers = latestDist.rows[0].staker_count
+          debugInfo.dbFallback = latestDist.rows[0]
+        } else {
+          debugInfo.dbFallback = 'no rows'
+        }
+      } catch (dbError) {
+        console.error('[/api/stats] Database fallback also failed:', dbError.message)
+        debugInfo.dbError = dbError.message
       }
     }
     
     // Get total yield revenue (network revenue) from database
-    const yieldTotals = await pool.query(`
-      SELECT 
-        COALESCE(SUM(total_yield_lamports), 0) as total_yield,
-        COALESCE(SUM(staker_share_lamports), 0) as total_to_stakers,
-        COUNT(*) as distribution_count
-      FROM yield_distributions
-    `)
+    let totals = { total_yield: 0, total_to_stakers: 0, distribution_count: 0 }
+    try {
+      const yieldTotals = await pool.query(`
+        SELECT 
+          COALESCE(SUM(total_yield_lamports), 0) as total_yield,
+          COALESCE(SUM(staker_share_lamports), 0) as total_to_stakers,
+          COUNT(*) as distribution_count
+        FROM yield_distributions
+      `)
+      totals = yieldTotals.rows[0] || totals
+    } catch (yieldError) {
+      console.error('[/api/stats] Failed to fetch yield totals:', yieldError.message)
+      debugInfo.yieldError = yieldError.message
+    }
     
     // Get jobs count (from batch_jobs or agent_runs)
     let jobsCount = 0
@@ -108,20 +132,23 @@ app.get('/api/stats', async (req, res) => {
       // Table might not exist, that's ok
     }
     
-    const totals = yieldTotals.rows[0]
-    
-    res.json({
+    const response = {
       totalStakedSol,
       totalStakers,
       totalJobsCompleted: jobsCount,
       networkRevenueSol: Number(totals?.total_yield || 0) / LAMPORTS_PER_SOL,
+      stakerRevenueSol: Number(totals?.total_to_stakers || 0) / LAMPORTS_PER_SOL,
       distributionCount: Number(totals?.distribution_count || 0),
       updatedAt: new Date().toISOString(),
-      source: 'on-chain' // Indicates live data
-    })
+      source: dataSource,
+      debug: debugInfo
+    }
+    
+    console.log('[/api/stats] Returning:', JSON.stringify(response))
+    res.json(response)
   } catch (error) {
-    console.error('Error fetching stats:', error)
-    res.status(500).json({ error: 'Failed to fetch stats' })
+    console.error('[/api/stats] Error fetching stats:', error)
+    res.status(500).json({ error: 'Failed to fetch stats', message: error.message })
   }
 })
 
