@@ -19,6 +19,8 @@ app.use(cors({
     'http://localhost:5175',
     'http://localhost:5176',
     'http://localhost:5177',
+    'https://primis-provider.vercel.app',
+    'https://primis-landing.vercel.app',
     process.env.FRONTEND_URL
   ].filter(Boolean),
   credentials: true
