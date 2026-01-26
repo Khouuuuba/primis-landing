@@ -92,7 +92,7 @@ export async function getVaultState() {
   const connection = new Connection(RPC_URL, 'confirmed');
   const vaultPDA = getVaultPDA();
   
-  const idlPath = join(__dirname, '../../capital-provider-demo/src/primis_staking.json');
+  const idlPath = join(__dirname, 'primis_staking.json');
   if (!existsSync(idlPath)) {
     throw new Error('IDL file not found: ' + idlPath);
   }
@@ -187,7 +187,7 @@ async function distributeYield() {
       console.log('   ✅ Vault funded with staker share');
       
       // Distribute on-chain
-      const idlPath = join(__dirname, '../../capital-provider-demo/src/primis_staking.json');
+      const idlPath = join(__dirname, 'primis_staking.json');
       const idl = JSON.parse(readFileSync(idlPath, 'utf8'));
       const provider = new AnchorProvider(connection, {
         publicKey: authorityKeypair.publicKey,
