@@ -174,6 +174,145 @@
             opacity: 0.9;
         }
 
+        /* Beta Badge */
+        .beta-badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.625rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 3px 6px;
+            border-radius: 3px;
+            background: rgba(200, 120, 50, 0.15);
+            color: #c87832;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+
+        .nav-link .live-dot {
+            width: 6px;
+            height: 6px;
+            background: #c87832;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(200, 120, 50, 0.4); }
+            50% { opacity: 0.8; box-shadow: 0 0 0 4px rgba(200, 120, 50, 0); }
+        }
+
+        /* Announcement Bar */
+        .announcement-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 101;
+            background: linear-gradient(90deg, rgba(200, 120, 50, 0.08) 0%, rgba(200, 120, 50, 0.03) 50%, rgba(200, 120, 50, 0.08) 100%);
+            border-bottom: 1px solid rgba(200, 120, 50, 0.15);
+            padding: 10px 0;
+            transform: translateY(0);
+            transition: transform 0.4s ease;
+        }
+
+        .announcement-bar.hidden {
+            transform: translateY(-100%);
+        }
+
+        .announcement-bar .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .announcement-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.8125rem;
+            color: var(--text-primary);
+        }
+
+        .announcement-dot {
+            width: 8px;
+            height: 8px;
+            background: #c87832;
+            border-radius: 50%;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        .announcement-link {
+            color: #c87832;
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+
+        .announcement-link:hover {
+            opacity: 0.8;
+        }
+
+        .announcement-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            margin-left: 8px;
+            font-size: 1.1rem;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .announcement-close:hover {
+            color: var(--text-primary);
+        }
+
+        /* Adjust nav when announcement bar is visible */
+        body.has-announcement nav {
+            top: 41px;
+        }
+
+        body.has-announcement .hero {
+            padding-top: 41px;
+        }
+
+        /* Beta CTA Button */
+        .btn-beta {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            background: transparent;
+            color: #c87832;
+            font-size: 0.875rem;
+            font-weight: 500;
+            font-family: var(--font-family);
+            text-decoration: none;
+            border-radius: 6px;
+            border: 1px solid rgba(200, 120, 50, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-beta:hover {
+            background: rgba(200, 120, 50, 0.1);
+            border-color: rgba(200, 120, 50, 0.5);
+        }
+
+        .btn-beta .live-indicator {
+            width: 6px;
+            height: 6px;
+            background: #c87832;
+            border-radius: 50%;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
         .btn-primary {
             display: inline-flex;
             align-items: center;
@@ -284,8 +423,17 @@
         }
 
         .hero-cta {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
             opacity: 0;
             animation: fadeUp 2s ease forwards 1.3s;
+        }
+
+        .hero-cta .btn-primary,
+        .hero-cta .btn-beta {
+            min-width: 180px;
+            justify-content: center;
         }
 
         /* System Flywheel - Circular Architecture */
@@ -1017,7 +1165,7 @@
             font-size: 1.5rem;
             font-weight: 500;
             letter-spacing: -0.03em;
-            margin-bottom: 16px;
+            margin-bottom: 48px;
             color: var(--text-primary);
         }
 
@@ -1028,6 +1176,104 @@
             max-width: 400px;
             margin-left: auto;
             margin-right: auto;
+        }
+
+        /* Two-Column CTA Cards */
+        .cta-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .cta-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 40px 32px;
+            text-align: left;
+            transition: border-color 0.3s ease;
+        }
+
+        .cta-card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .cta-card.featured {
+            border-color: rgba(200, 120, 50, 0.25);
+            background: linear-gradient(135deg, rgba(200, 120, 50, 0.04) 0%, transparent 60%);
+        }
+
+        .cta-card.featured:hover {
+            border-color: rgba(200, 120, 50, 0.4);
+        }
+
+        .cta-card-label {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cta-card.featured .cta-card-label {
+            color: #c87832;
+        }
+
+        .cta-card-label .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.625rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            background: rgba(200, 120, 50, 0.15);
+            color: #c87832;
+        }
+
+        .cta-card-label .live-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: #c87832;
+            border-radius: 50%;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        .cta-card h3 {
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            letter-spacing: -0.02em;
+        }
+
+        .cta-card p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+
+        .cta-card .btn-beta,
+        .cta-card .btn-secondary {
+            width: 100%;
+            justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+            .cta-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .cta-card {
+                padding: 32px 24px;
+            }
         }
 
         /* Footer */
@@ -1210,6 +1456,19 @@
     <div class="grid-pattern"></div>
     <div class="noise-overlay"></div>
 
+    <!-- Announcement Bar -->
+    <div class="announcement-bar" id="announcement-bar">
+        <div class="container">
+            <div class="announcement-content">
+                <span class="announcement-dot"></span>
+                <span>Devnet Beta is Live</span>
+                <span style="color: var(--text-secondary);">—</span>
+                <a href="/capitalprovider" class="announcement-link">Try it now →</a>
+            </div>
+            <button class="announcement-close" id="announcement-close" aria-label="Close announcement">×</button>
+        </div>
+    </div>
+
     <!-- Nav -->
     <nav id="nav">
         <div class="container">
@@ -1224,6 +1483,7 @@
             </div>
             <div class="nav-links">
                 <a href="roadmap.html" class="nav-link">Roadmap</a>
+                <a href="/capitalprovider" class="nav-link"><span class="live-dot"></span>Capital Provider<span class="beta-badge">Beta</span></a>
                 <a href="#" class="nav-cta" data-modal-trigger>Request access</a>
             </div>
         </div>
@@ -1249,7 +1509,7 @@
             <p class="hero-anchor">Designed to run regardless of market cycles.</p>
             <div class="hero-cta">
                 <button class="btn-primary" data-modal-trigger>Request access</button>
-                <a href="roadmap.html" class="btn-secondary">View roadmap</a>
+                <a href="/capitalprovider" class="btn-beta"><span class="live-indicator"></span>Try Devnet Beta</a>
             </div>
         </div>
     </section>
@@ -1298,7 +1558,7 @@
                     <li>Usage revenue distributed</li>
                     <li>Liquid positions</li>
                 </ul>
-                <button class="btn-secondary" data-modal-trigger>Request access</button>
+                <a href="/capitalprovider" class="btn-beta"><span class="live-indicator"></span>Try Devnet Beta</a>
             </div>
             <div class="demo-mockup">
                 <div class="mockup-window">
@@ -1547,9 +1807,26 @@
     <!-- Final CTA -->
     <section class="final-cta">
         <div class="container">
-            <h2>Early access</h2>
-            <p>Primis is onboarding a limited number of teams.</p>
-            <button class="btn-primary" data-modal-trigger>Request access</button>
+            <h2>Get Started</h2>
+            <div class="cta-cards">
+                <!-- Capital Providers Card -->
+                <div class="cta-card featured">
+                    <div class="cta-card-label">
+                        Capital Providers
+                        <span class="live-badge">Live</span>
+                    </div>
+                    <h3>Start earning today</h3>
+                    <p>Devnet beta is live. Deposit SOL and earn yield from real AI compute demand. No waitlist required.</p>
+                    <a href="/capitalprovider" class="btn-beta"><span class="live-indicator"></span>Try Devnet Beta</a>
+                </div>
+                <!-- AI Builders Card -->
+                <div class="cta-card">
+                    <div class="cta-card-label">AI Builders</div>
+                    <h3>Access cheaper compute</h3>
+                    <p>We're onboarding teams building AI products. Run inference at a fraction of typical cloud costs.</p>
+                    <button class="btn-secondary" data-modal-trigger>Request Access</button>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -1594,6 +1871,27 @@
     </div>
 
     <script>
+        // Announcement Bar
+        (function() {
+            const bar = document.getElementById('announcement-bar');
+            const closeBtn = document.getElementById('announcement-close');
+            const storageKey = 'primis-announcement-dismissed';
+            
+            // Check if already dismissed
+            if (localStorage.getItem(storageKey) === 'true') {
+                bar.classList.add('hidden');
+            } else {
+                document.body.classList.add('has-announcement');
+            }
+            
+            // Close button handler
+            closeBtn.addEventListener('click', function() {
+                bar.classList.add('hidden');
+                document.body.classList.remove('has-announcement');
+                localStorage.setItem(storageKey, 'true');
+            });
+        })();
+
         // Canvas
         const canvas = document.getElementById('bg-canvas');
         const ctx = canvas.getContext('2d');

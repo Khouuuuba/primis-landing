@@ -1,0 +1,20 @@
+{
+  "rewrites": [
+    {
+      "source": "/capitalprovider",
+      "destination": "https://primis-provider.vercel.app/"
+    },
+    {
+      "source": "/capitalprovider/:path*",
+      "destination": "https://primis-provider.vercel.app/:path*"
+    },
+    {
+      "source": "/aibuilder",
+      "destination": "https://primis-ai-builder.vercel.app/"
+    },
+    {
+      "source": "/aibuilder/:path*",
+      "destination": "https://primis-ai-builder.vercel.app/:path*"
+    }
+  ]
+}
