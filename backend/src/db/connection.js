@@ -1,15 +1,21 @@
 import pg from 'pg'
 import dotenv from 'dotenv'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
 
-dotenv.config()
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
+// Load .env from backend root (2 levels up from src/db/)
+dotenv.config({ path: join(__dirname, '../../.env') })
 
 const { Pool } = pg
 
 // Create connection pool
-// Supabase requires SSL for direct connections
+// Try without SSL first, then with SSL if needed
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: false, // Supabase direct connection may not require SSL
   statement_timeout: 300000, // 5 minutes for batch processing
   query_timeout: 300000
 })

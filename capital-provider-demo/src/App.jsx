@@ -233,12 +233,15 @@ function App() {
               totalEarned: stakeAccount.totalYieldClaimed,
               yieldEarned: stakeAccount.totalYieldClaimed,
               revenueEarned: 0,
-              effectiveApy: 7.4,
+              effectiveApy: 9.0,
               daysStaked: Math.floor((Date.now() / 1000 - stakeAccount.depositedAt) / 86400),
               networkUtilization: 63 + Math.floor(Math.random() * 15),
               currentEpoch: 421,
               allocation: { staker: 70, subsidy: 20, reserve: 10 }
             })
+            // User with stake gets activity feed
+            setActivity(generateActivityFeed())
+            setEarningsHistory(generateEarningsHistory())
             console.log('Portfolio initialized from on-chain stake:', stakeAccount.amount, 'SOL')
           } else {
             // No stake yet - show empty portfolio
@@ -247,17 +250,17 @@ function App() {
               totalEarned: 0,
               yieldEarned: 0,
               revenueEarned: 0,
-              effectiveApy: 7.4,
+              effectiveApy: 9.0,
               daysStaked: 0,
               networkUtilization: 63 + Math.floor(Math.random() * 15),
               currentEpoch: 421,
               allocation: { staker: 70, subsidy: 20, reserve: 10 }
             })
             console.log('No existing stake - empty portfolio')
+            // No stake = no activity or earnings
+            setActivity([])
+            setEarningsHistory([])
           }
-          
-          setActivity(generateActivityFeed())
-          setEarningsHistory(generateEarningsHistory())
           
         } catch (err) {
           console.error('Failed to initialize portfolio:', err)
@@ -273,8 +276,9 @@ function App() {
             currentEpoch: 421,
             allocation: { staker: 70, subsidy: 20, reserve: 10 }
           })
-          setActivity(generateActivityFeed())
-          setEarningsHistory(generateEarningsHistory())
+          // Error state = empty activity
+          setActivity([])
+          setEarningsHistory([])
         } finally {
           setIsLoading(false)
         }
@@ -402,12 +406,17 @@ function App() {
     }
   }
 
-  // Simulate live activity updates
+  // Live activity updates - only for users with deposits
+  // Note: In production, this would come from a WebSocket or API polling
   useEffect(() => {
     if (!connected || !portfolio) return
     
+    // Only simulate activity if user has actual stake
+    const hasRealStake = onChainStake?.amount > 0
+    if (!hasRealStake) return
+    
     const interval = setInterval(() => {
-      // Randomly add new activity
+      // Randomly add new activity (simulated for demo)
       if (Math.random() > 0.7) {
         const types = ['fine-tune', 'embed-batch', 'train', 'inference']
         const type = types[Math.floor(Math.random() * types.length)]
@@ -420,7 +429,7 @@ function App() {
         }
         setActivity(prev => [newActivity, ...prev.slice(0, 4)])
         
-        // Update portfolio with new revenue
+        // Update portfolio with new revenue (user's proportional share)
         const userShare = amount * 0.01
         setPortfolio(prev => ({
           ...prev,
@@ -434,7 +443,7 @@ function App() {
     }, 8000)
     
     return () => clearInterval(interval)
-  }, [connected, portfolio, addToast])
+  }, [connected, portfolio, onChainStake, addToast])
 
   return (
     <div className="app">
@@ -456,8 +465,6 @@ function App() {
           <Dashboard
             wallet={wallet}
             portfolio={portfolio}
-            activity={activity}
-            earningsHistory={earningsHistory}
             onDeposit={() => setShowDepositModal(true)}
             onWithdraw={() => setShowWithdrawModal(true)}
             onChainStake={onChainStake}

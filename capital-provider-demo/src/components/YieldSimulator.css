@@ -1,0 +1,158 @@
+/* ═══════════════════════════════════════════════════════════════════
+   YIELD SIMULATOR - Compact Version
+   ═══════════════════════════════════════════════════════════════════ */
+
+.yield-compact {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 14px 18px;
+  transition: all 0.3s ease;
+}
+
+.yield-compact:hover {
+  border-color: var(--border-hover);
+}
+
+.yield-compact.loading {
+  min-height: 60px;
+}
+
+.yield-compact-skeleton {
+  height: 24px;
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-card) 50%, var(--bg-secondary) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ═══ Main Row ═══ */
+.yield-compact-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.yield-compact-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.yield-compact-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.devnet-tag {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* ═══ Timer ═══ */
+.yield-compact-timer {
+  display: flex;
+  align-items: center;
+}
+
+.timer-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+
+/* ═══ Estimate ═══ */
+.yield-compact-estimate {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.estimate-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.estimate-value {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--success);
+}
+
+/* ═══ Stats Row ═══ */
+.yield-compact-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.compact-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.compact-stat-value {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.compact-stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.compact-stat-divider {
+  width: 1px;
+  height: 12px;
+  background: var(--border-color);
+  opacity: 0.5;
+}
+
+/* ═══ Responsive ═══ */
+@media (max-width: 600px) {
+  .yield-compact-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .yield-compact-estimate {
+    margin-left: 0;
+    align-items: flex-start;
+  }
+  
+  .yield-compact-stats {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .compact-stat-divider {
+    display: none;
+  }
+}

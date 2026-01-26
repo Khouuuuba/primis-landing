@@ -59,24 +59,65 @@ app.get('/api/health', async (req, res) => {
 })
 
 // =====================
-// PROTOCOL STATS (Public)
+// PROTOCOL STATS (Public) - Real-time on-chain data
 // =====================
 app.get('/api/stats', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM protocol_stats LIMIT 1')
-    const stats = result.rows[0] || {
-      total_staked_sol: 0,
-      total_stakers: 0,
-      total_jobs_completed: 0,
-      total_compute_revenue_usd: 0
+    const LAMPORTS_PER_SOL = 1_000_000_000
+    
+    // Get LIVE on-chain vault state (TVL and staker count)
+    let totalStakedSol = 0
+    let totalStakers = 0
+    
+    try {
+      const vaultState = await getVaultState()
+      totalStakedSol = vaultState.totalStaked / LAMPORTS_PER_SOL
+      totalStakers = vaultState.stakerCount
+    } catch (onChainError) {
+      console.warn('Failed to fetch on-chain state, falling back to database:', onChainError.message)
+      // Fallback to database if on-chain query fails
+      const latestDist = await pool.query(`
+        SELECT total_staked_lamports, staker_count
+        FROM yield_distributions 
+        ORDER BY created_at DESC 
+        LIMIT 1
+      `)
+      if (latestDist.rows[0]) {
+        totalStakedSol = Number(latestDist.rows[0].total_staked_lamports) / LAMPORTS_PER_SOL
+        totalStakers = latestDist.rows[0].staker_count
+      }
     }
     
+    // Get total yield revenue (network revenue) from database
+    const yieldTotals = await pool.query(`
+      SELECT 
+        COALESCE(SUM(total_yield_lamports), 0) as total_yield,
+        COALESCE(SUM(staker_share_lamports), 0) as total_to_stakers,
+        COUNT(*) as distribution_count
+      FROM yield_distributions
+    `)
+    
+    // Get jobs count (from batch_jobs or agent_runs)
+    let jobsCount = 0
+    try {
+      const jobsResult = await pool.query(`
+        SELECT COUNT(*) as count FROM batch_jobs WHERE status = 'completed'
+      `)
+      jobsCount = parseInt(jobsResult.rows[0]?.count || 0)
+    } catch (e) {
+      // Table might not exist, that's ok
+    }
+    
+    const totals = yieldTotals.rows[0]
+    
     res.json({
-      totalStakedSol: parseFloat(stats.total_staked_sol),
-      totalStakers: stats.total_stakers,
-      totalJobsCompleted: stats.total_jobs_completed,
-      totalComputeRevenueUsd: parseFloat(stats.total_compute_revenue_usd),
-      updatedAt: stats.updated_at
+      totalStakedSol,
+      totalStakers,
+      totalJobsCompleted: jobsCount,
+      networkRevenueSol: Number(totals?.total_yield || 0) / LAMPORTS_PER_SOL,
+      distributionCount: Number(totals?.distribution_count || 0),
+      updatedAt: new Date().toISOString(),
+      source: 'on-chain' // Indicates live data
     })
   } catch (error) {
     console.error('Error fetching stats:', error)
@@ -94,7 +135,13 @@ import jobsRoutes from './routes/jobs.js'
 import paymentsRoutes from './routes/payments.js'
 import batchRoutes from './routes/batch.js'
 import yieldRoutes from './routes/yield.js'
-import { startScheduler, stopScheduler, getSchedulerStatus, triggerDistribution } from './yield-scheduler.js'
+import filesRoutes from './routes/files.js'
+import instancesRoutes from './routes/instances.js'
+import agentsRoutes from './routes/agents.js'
+import inferenceRoutes from './routes/inference.js'
+import apiKeysRoutes from './routes/api-keys.js'
+import providersRoutes from './routes/providers.js'
+import { startScheduler, stopScheduler, getSchedulerStatus, triggerDistribution, getVaultState } from './yield-scheduler.js'
 
 app.use('/api/auth', authRoutes)
 app.use('/api/users', usersRoutes)
@@ -103,6 +150,12 @@ app.use('/api/jobs', jobsRoutes)
 app.use('/api/payments', paymentsRoutes)
 app.use('/api/batch', batchRoutes)
 app.use('/api/yield', yieldRoutes)
+app.use('/api/files', filesRoutes)
+app.use('/api/instances', instancesRoutes)
+app.use('/api/agents', agentsRoutes)
+app.use('/api/inference', inferenceRoutes)
+app.use('/api/api-keys', apiKeysRoutes)
+app.use('/api/providers', providersRoutes)
 
 // =====================
 // SCHEDULER ENDPOINTS

@@ -1,70 +1,126 @@
 import { useState, useEffect } from 'react'
 import './StatsBar.css'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+const DISTRIBUTION_INTERVAL_MINUTES = 10
+
 function StatsBar() {
-  const [liveRevenue, setLiveRevenue] = useState(847.234)
-  const [tvl, setTvl] = useState(4247832)
-  const [stakers, setStakers] = useState(847)
-  const [jobsProcessed, setJobsProcessed] = useState(12847)
+  const [stats, setStats] = useState({
+    tvl: 0,
+    networkRevenue: 0
+  })
+  const [countdown, setCountdown] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [displayRevenue, setDisplayRevenue] = useState(0)
 
-  // Simulate live revenue ticking up
+  // Fetch real stats from API
   useEffect(() => {
-    const interval = setInterval(() => {
-      setLiveRevenue(prev => prev + (Math.random() * 0.01))
-      
-      // Occasionally increment other stats
-      if (Math.random() > 0.95) {
-        setJobsProcessed(prev => prev + 1)
+    const fetchStats = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/stats`)
+        const data = await res.json()
+        setStats({
+          tvl: data.totalStakedSol || 0,
+          networkRevenue: data.networkRevenueSol || 0
+        })
+        setDisplayRevenue(data.networkRevenueSol || 0)
+        setLoading(false)
+      } catch (error) {
+        console.error('Failed to fetch stats:', error)
+        setLoading(false)
       }
-      if (Math.random() > 0.99) {
-        setStakers(prev => prev + 1)
-        setTvl(prev => prev + Math.floor(Math.random() * 5000))
-      }
-    }, 100)
+    }
 
+    fetchStats()
+    const interval = setInterval(fetchStats, 30000)
     return () => clearInterval(interval)
   }, [])
 
-  const formatNumber = (num) => {
-    if (num >= 1000000) {
-      return `$${(num / 1000000).toFixed(2)}M`
+  // Countdown timer for next distribution
+  useEffect(() => {
+    const calculateCountdown = () => {
+      const now = new Date()
+      const minutes = now.getMinutes()
+      const nextMinute = Math.ceil(minutes / DISTRIBUTION_INTERVAL_MINUTES) * DISTRIBUTION_INTERVAL_MINUTES
+      
+      const nextDistribution = new Date(now)
+      if (nextMinute >= 60) {
+        nextDistribution.setHours(nextDistribution.getHours() + 1)
+        nextDistribution.setMinutes(nextMinute - 60)
+      } else {
+        nextDistribution.setMinutes(nextMinute)
+      }
+      nextDistribution.setSeconds(0)
+      nextDistribution.setMilliseconds(0)
+
+      const diff = nextDistribution - now
+      
+      if (diff <= 0) {
+        setCountdown({ minutes: DISTRIBUTION_INTERVAL_MINUTES, seconds: 0 })
+        return
+      }
+
+      setCountdown({
+        minutes: Math.floor(diff / 60000),
+        seconds: Math.floor((diff % 60000) / 1000),
+      })
     }
-    if (num >= 1000) {
-      return `$${(num / 1000).toFixed(1)}K`
+
+    calculateCountdown()
+    const interval = setInterval(calculateCountdown, 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Animate revenue ticking up
+  useEffect(() => {
+    if (stats.networkRevenue > 0) {
+      const interval = setInterval(() => {
+        setDisplayRevenue(prev => prev + 0.000001)
+      }, 500)
+      return () => clearInterval(interval)
     }
-    return num.toLocaleString()
+  }, [stats.networkRevenue])
+
+  const formatSOL = (sol) => {
+    if (sol >= 1000) return `${(sol / 1000).toFixed(1)}K`
+    return sol.toFixed(2)
   }
 
   return (
     <div className="stats-bar">
       <div className="stats-bar-inner">
+        {/* TVL */}
         <div className="stat-item">
-          <span className="stat-label">Total Value Locked</span>
-          <span className="stat-value">{formatNumber(tvl)}</span>
+          <span className="stat-label">TVL</span>
+          <span className="stat-value">
+            {loading ? '...' : `${formatSOL(stats.tvl)} SOL`}
+          </span>
         </div>
         
         <div className="stat-divider"></div>
         
-        <div className="stat-item">
-          <span className="stat-label">Active Stakers</span>
-          <span className="stat-value">{stakers.toLocaleString()}</span>
-        </div>
-        
-        <div className="stat-divider"></div>
-        
-        <div className="stat-item">
-          <span className="stat-label">Jobs Processed</span>
-          <span className="stat-value">{jobsProcessed.toLocaleString()}</span>
-        </div>
-        
-        <div className="stat-divider"></div>
-        
+        {/* Staker Revenue */}
         <div className="stat-item live">
           <span className="stat-label">
             <span className="live-dot"></span>
-            Network Revenue
+            Staker Revenue
           </span>
-          <span className="stat-value revenue">+{liveRevenue.toFixed(4)} SOL</span>
+          <span className="stat-value revenue">
+            {loading ? '...' : `+${displayRevenue.toFixed(4)} SOL`}
+          </span>
+        </div>
+        
+        <div className="stat-divider"></div>
+        
+        {/* Next Distribution Countdown */}
+        <div className="stat-item countdown">
+          <span className="stat-label">Next Distribution</span>
+          <span className="stat-value timer">
+            {countdown 
+              ? `${String(countdown.minutes).padStart(2, '0')}:${String(countdown.seconds).padStart(2, '0')}`
+              : '--:--'
+            }
+          </span>
         </div>
       </div>
     </div>

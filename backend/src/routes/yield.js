@@ -1,6 +1,7 @@
 import express from 'express';
 import { query } from '../db/connection.js';
 import { requireAuth } from '../middleware/auth.js';
+import { calculateUserAPY, getRevenueModelStats } from '../yield-scheduler.js';
 
 const router = express.Router();
 
@@ -201,6 +202,91 @@ router.get('/claims/:wallet', async (req, res) => {
   } catch (error) {
     console.error('Error fetching claims:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch claims' });
+  }
+});
+
+// ==================== NEW REVENUE MODEL ENDPOINTS ====================
+
+// GET /api/yield/revenue-model - Get revenue model configuration
+router.get('/revenue-model', async (req, res) => {
+  try {
+    const model = getRevenueModelStats();
+    res.json({
+      success: true,
+      model: {
+        ...model,
+        description: 'Primis takes 10% fee on compute volume. Revenue is split 50/50 with stakers.',
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching revenue model:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch revenue model' });
+  }
+});
+
+// GET /api/yield/apy/:stakeSOL - Calculate variable APY for a given stake amount
+router.get('/apy/:stakeSOL', async (req, res) => {
+  try {
+    const stakeSOL = parseFloat(req.params.stakeSOL);
+    
+    if (isNaN(stakeSOL) || stakeSOL < 0) {
+      return res.status(400).json({ success: false, error: 'Invalid stake amount' });
+    }
+    
+    const apyDetails = await calculateUserAPY(stakeSOL);
+    
+    res.json({
+      success: true,
+      apy: apyDetails,
+    });
+  } catch (error) {
+    console.error('Error calculating APY:', error);
+    res.status(500).json({ success: false, error: 'Failed to calculate APY' });
+  }
+});
+
+// GET /api/yield/my-apy/:wallet - Calculate variable APY for a specific wallet's stake
+router.get('/my-apy/:wallet', async (req, res) => {
+  try {
+    const { wallet } = req.params;
+    
+    // Get user's stake from the latest distribution data
+    // In production, this would query the on-chain stake account
+    // For now, we'll use the database
+    const stakeResult = await query(`
+      SELECT total_staked_lamports, staker_count 
+      FROM yield_distributions 
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `);
+    
+    const totalStakedLamports = Number(stakeResult.rows[0]?.total_staked_lamports || 0);
+    const totalStakedSOL = totalStakedLamports / LAMPORTS_PER_SOL;
+    
+    // For demo: if only 1 staker, assume they have all the stake
+    // In production, this would query the actual stake account
+    const stakerCount = stakeResult.rows[0]?.staker_count || 0;
+    let userStakeSOL = 0;
+    
+    if (stakerCount === 1) {
+      // Single staker gets all
+      userStakeSOL = totalStakedSOL;
+    } else {
+      // For multiple stakers, we'd need to query the specific wallet
+      // This is a simplification for demo
+      userStakeSOL = totalStakedSOL / stakerCount;
+    }
+    
+    const apyDetails = await calculateUserAPY(userStakeSOL, totalStakedSOL);
+    
+    res.json({
+      success: true,
+      wallet,
+      apy: apyDetails,
+    });
+  } catch (error) {
+    console.error('Error calculating user APY:', error);
+    res.status(500).json({ success: false, error: 'Failed to calculate user APY' });
   }
 });
 

@@ -1,19 +1,14 @@
 import { useState, useEffect } from 'react'
-import EarningsCard from './EarningsCard'
-import StatsRow from './StatsRow'
 import ApyComparison from './ApyComparison'
-import AllocationChart from './AllocationChart'
-import EarningsHistory from './EarningsHistory'
-import ActivityFeed from './ActivityFeed'
-import ClaimYield from './ClaimYield'
+import YourEarnings from './YourEarnings'
 import './Dashboard.css'
 
-function Dashboard({ wallet, portfolio, activity, earningsHistory, onDeposit, onWithdraw, onChainStake, vaultState, onRefresh }) {
+function Dashboard({ wallet, portfolio, onDeposit, onWithdraw, onChainStake, vaultState, onRefresh }) {
   const [visibleCards, setVisibleCards] = useState([])
 
   useEffect(() => {
-    // Stagger card animations
-    const cards = ['header', 'actions', 'claim', 'earnings', 'stats', 'apy', 'allocation', 'history', 'activity']
+    // Stagger card animations (Minimal 3-section layout)
+    const cards = ['header', 'actions', 'yourearnings', 'apy']
     cards.forEach((card, index) => {
       setTimeout(() => {
         setVisibleCards(prev => [...prev, card])
@@ -32,8 +27,10 @@ function Dashboard({ wallet, portfolio, activity, earningsHistory, onDeposit, on
   
   // Use on-chain data when available
   const displayStakedAmount = onChainStake?.amount ?? portfolio.stakedAmount
-  const displayYieldClaimed = onChainStake?.totalYieldClaimed ?? 0
   const isOnChain = onChainStake !== null
+  
+  // Check if user has deposited (for conditional rendering)
+  const hasDeposit = displayStakedAmount > 0
 
   return (
     <div className="dashboard">
@@ -53,14 +50,12 @@ function Dashboard({ wallet, portfolio, activity, earningsHistory, onDeposit, on
           <span>·</span>
           <span>Epoch {portfolio.currentEpoch}</span>
           <span>·</span>
-          {vaultState && (
-            <>
-              <span>{vaultState.stakerCount} stakers</span>
-              <span>·</span>
-              <span>{vaultState.totalStaked.toFixed(2)} SOL TVL</span>
-            </>
-          )}
-          {!vaultState && <span>Revenue settles per epoch</span>}
+          <span className="user-stake">
+            {displayStakedAmount > 0 
+              ? `${displayStakedAmount.toFixed(2)} SOL staked`
+              : 'No active stake'
+            }
+          </span>
         </div>
       </div>
 
@@ -73,38 +68,18 @@ function Dashboard({ wallet, portfolio, activity, earningsHistory, onDeposit, on
         </button>
       </div>
 
-      <div className={`animate-card ${isCardVisible('claim') ? 'visible' : ''}`}>
-          <ClaimYield 
-            wallet={wallet} 
-            onChainStake={onChainStake} 
-            vaultState={vaultState}
-            onClaim={onRefresh}
-          />
-        </div>
+      <div className={`animate-card ${isCardVisible('yourearnings') ? 'visible' : ''}`}>
+        <YourEarnings 
+          wallet={wallet} 
+          onChainStake={onChainStake} 
+          vaultState={vaultState}
+          portfolio={portfolio}
+          onClaim={onRefresh}
+        />
+      </div>
 
-      <div className="dashboard-grid">
-        <div className="grid-main">
-          <div className={`animate-card ${isCardVisible('earnings') ? 'visible' : ''}`}>
-            <EarningsCard portfolio={portfolio} />
-          </div>
-          <div className={`animate-card ${isCardVisible('stats') ? 'visible' : ''}`}>
-            <StatsRow portfolio={portfolio} />
-          </div>
-          <div className={`animate-card ${isCardVisible('apy') ? 'visible' : ''}`}>
-            <ApyComparison effectiveApy={portfolio.effectiveApy} />
-          </div>
-          <div className={`animate-card ${isCardVisible('allocation') ? 'visible' : ''}`}>
-            <AllocationChart allocation={portfolio.allocation} />
-          </div>
-          <div className={`animate-card ${isCardVisible('history') ? 'visible' : ''}`}>
-            <EarningsHistory history={earningsHistory} />
-          </div>
-        </div>
-        <div className="grid-sidebar">
-          <div className={`animate-card ${isCardVisible('activity') ? 'visible' : ''}`}>
-            <ActivityFeed activity={activity} />
-          </div>
-        </div>
+      <div className={`animate-card ${isCardVisible('apy') ? 'visible' : ''}`}>
+        <ApyComparison userStakeSOL={displayStakedAmount} hasDeposit={hasDeposit} />
       </div>
     </div>
   )

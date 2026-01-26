@@ -1,12 +1,43 @@
 import { useState, useEffect } from 'react'
 import './EarningsHistory.css'
 
-function EarningsHistory({ history }) {
+function EarningsHistory({ history, hasDeposit = false }) {
   const [animated, setAnimated] = useState(false)
   
   useEffect(() => {
-    setTimeout(() => setAnimated(true), 500)
-  }, [])
+    if (hasDeposit && history.length > 0) {
+      setTimeout(() => setAnimated(true), 500)
+    }
+  }, [hasDeposit, history])
+
+  // Show empty state if no deposit or no history
+  if (!hasDeposit || history.length === 0) {
+    return (
+      <div className="history-card">
+        <div className="history-header">
+          <div className="history-left">
+            <span className="history-title">Earnings History</span>
+            <span className="history-period">Last 30 days</span>
+          </div>
+          <div className="history-summary">
+            <div className="summary-item">
+              <span className="summary-label">Yield</span>
+              <span className="summary-value">+0 SOL</span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-label">Revenue</span>
+              <span className="summary-value highlight">+0 SOL</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="history-empty">
+          <span className="empty-text">No earnings yet</span>
+          <span className="empty-hint">Deposit SOL to start earning yield and compute revenue</span>
+        </div>
+      </div>
+    )
+  }
 
   const maxValue = Math.max(...history.map(h => h.yield + h.revenue))
   

@@ -1,24 +1,26 @@
 import { useEffect, useState } from 'react'
 import './ActivityFeed.css'
 
-function ActivityFeed({ activity }) {
+function ActivityFeed({ activity, hasDeposit = false }) {
   const [visibleItems, setVisibleItems] = useState([])
 
   useEffect(() => {
-    // Animate items appearing
+    // Only animate if user has deposit
+    if (!hasDeposit) return
+    
     activity.forEach((item, index) => {
       setTimeout(() => {
         setVisibleItems(prev => [...prev, item.id])
       }, index * 150)
     })
-  }, [])
+  }, [hasDeposit])
 
   // Add new items with animation
   useEffect(() => {
-    if (activity.length > 0 && !visibleItems.includes(activity[0].id)) {
+    if (hasDeposit && activity.length > 0 && !visibleItems.includes(activity[0].id)) {
       setVisibleItems(prev => [activity[0].id, ...prev])
     }
-  }, [activity])
+  }, [activity, hasDeposit])
 
   const getTypeLabel = (type) => {
     switch (type) {
@@ -38,6 +40,28 @@ function ActivityFeed({ activity }) {
       case 'inference': return 'inference'
       default: return ''
     }
+  }
+
+  // Show empty state if user hasn't deposited
+  if (!hasDeposit) {
+    return (
+      <div className="activity-card">
+        <div className="activity-header">
+          <span className="activity-title">Recent Revenue</span>
+          <span className="activity-hint">From network usage</span>
+        </div>
+
+        <div className="activity-empty">
+          <span className="empty-icon">○</span>
+          <span className="empty-text">No revenue yet</span>
+          <span className="empty-hint">Deposit SOL to start earning compute fees</span>
+        </div>
+
+        <div className="activity-footer">
+          <span>Your share of compute fees: 0 SOL</span>
+        </div>
+      </div>
+    )
   }
 
   return (
