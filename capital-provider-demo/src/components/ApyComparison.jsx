@@ -7,6 +7,17 @@ function ApyComparison({ userStakeSOL = 0, hasDeposit = false }) {
   const [apyData, setApyData] = useState(null)
   const [revenueModel, setRevenueModel] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [lastValidStake, setLastValidStake] = useState(0)
+  
+  // Track last valid stake to prevent 0 flicker during refreshes
+  useEffect(() => {
+    if (userStakeSOL > 0) {
+      setLastValidStake(userStakeSOL)
+    }
+  }, [userStakeSOL])
+  
+  // Use last valid stake or current stake
+  const effectiveStake = userStakeSOL > 0 ? userStakeSOL : lastValidStake
   
   // Fetch variable APY from API
   useEffect(() => {
@@ -19,9 +30,10 @@ function ApyComparison({ userStakeSOL = 0, hasDeposit = false }) {
           setRevenueModel(modelData.model)
         }
         
-        // Fetch user's APY based on stake
-        if (userStakeSOL > 0) {
-          const apyRes = await fetch(`${API_URL}/api/yield/apy/${userStakeSOL}`)
+        // Fetch user's APY based on stake (use effectiveStake to prevent 0)
+        const stakeToQuery = effectiveStake > 0 ? effectiveStake : userStakeSOL
+        if (stakeToQuery > 0) {
+          const apyRes = await fetch(`${API_URL}/api/yield/apy/${stakeToQuery}`)
           const apyResult = await apyRes.json()
           if (apyResult.success) {
             setApyData(apyResult.apy)
@@ -29,6 +41,7 @@ function ApyComparison({ userStakeSOL = 0, hasDeposit = false }) {
         }
       } catch (error) {
         console.error('Failed to fetch APY data:', error)
+        // Don't clear apyData on error - keep showing last valid data
       } finally {
         setLoading(false)
       }
@@ -38,7 +51,7 @@ function ApyComparison({ userStakeSOL = 0, hasDeposit = false }) {
     // Refresh every 60 seconds
     const interval = setInterval(fetchAPY, 60000)
     return () => clearInterval(interval)
-  }, [userStakeSOL])
+  }, [effectiveStake, userStakeSOL])
 
   // Calculate display values
   const regularApy = 6.33 // Base Solana staking yield for comparison
