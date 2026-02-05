@@ -7,7 +7,7 @@
  * Docs: https://docs.railway.app/reference/public-api
  */
 
-const RAILWAY_API_URL = 'https://backboard.railway.com/graphql/v2'
+const RAILWAY_API_URL = 'https://backboard.railway.app/graphql/v2'
 
 // Lazy getter for API key
 const getApiKey = () => process.env.RAILWAY_API_KEY
@@ -250,22 +250,37 @@ async function getDeployment(deploymentId) {
 
 /**
  * Trigger a redeploy of a service
+ * Uses serviceInstanceRedeploy mutation which restarts the service
  * 
  * @param {string} serviceId - Railway service ID
  * @param {string} environmentId - Railway environment ID
  */
 async function redeployService(serviceId, environmentId) {
+  // First try serviceInstanceRedeploy (restarts the running service)
   const query = `
-    mutation DeploymentRedeploy($serviceId: String!, $environmentId: String!) {
-      deploymentRedeploy(serviceId: $serviceId, environmentId: $environmentId) {
-        id
-        status
-      }
+    mutation ServiceInstanceRedeploy($serviceId: String!, $environmentId: String!) {
+      serviceInstanceRedeploy(serviceId: $serviceId, environmentId: $environmentId)
     }
   `
   
-  const data = await railwayQuery(query, { serviceId, environmentId })
-  return data.deploymentRedeploy
+  try {
+    const data = await railwayQuery(query, { serviceId, environmentId })
+    return { success: true, redeployed: data.serviceInstanceRedeploy }
+  } catch (error) {
+    console.error('serviceInstanceRedeploy failed, trying deploymentRedeploy:', error.message)
+    
+    // Fallback to deploymentRedeploy
+    const fallbackQuery = `
+      mutation DeploymentRedeploy($serviceId: String!, $environmentId: String!) {
+        deploymentRedeploy(serviceId: $serviceId, environmentId: $environmentId) {
+          id
+          status
+        }
+      }
+    `
+    const data = await railwayQuery(fallbackQuery, { serviceId, environmentId })
+    return data.deploymentRedeploy
+  }
 }
 
 /**
