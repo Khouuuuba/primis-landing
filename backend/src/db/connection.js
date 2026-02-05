@@ -12,10 +12,11 @@ dotenv.config({ path: join(__dirname, '../../.env') })
 const { Pool } = pg
 
 // Create connection pool
-// Try without SSL first, then with SSL if needed
+// Supabase requires SSL in production
+const isProduction = process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: false, // Supabase direct connection may not require SSL
+  ssl: isProduction ? { rejectUnauthorized: false } : false,
   statement_timeout: 300000, // 5 minutes for batch processing
   query_timeout: 300000
 })
