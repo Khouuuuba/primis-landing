@@ -957,26 +957,67 @@
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid #2a2a2a;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.skills-btn {
+/* Clean, high-end action buttons */
+.action-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: #2a2a2a;
-  border: 1px solid #3a3a3a;
-  border-radius: 8px;
-  color: #ccc;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 6px;
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+  letter-spacing: 0.01em;
 }
 
-.skills-btn:hover {
-  background: #333;
-  border-color: #6366f1;
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Primary - Skills */
+.action-btn.primary {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   color: #fff;
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.action-btn.primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7c7ff7 0%, #9d6ffa 100%);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+/* Secondary - Restart */
+.action-btn.secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: #a0a0a0;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.action-btn.secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Danger - Delete */
+.action-btn.danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.action-btn.danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.4);
 }
 
 /* Skills Modal */

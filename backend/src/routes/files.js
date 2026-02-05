@@ -20,9 +20,6 @@ const upload = multer({
 });
 
 // Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL || extractSupabaseUrl(process.env.DATABASE_URL);
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
-
 function extractSupabaseUrl(dbUrl) {
   if (!dbUrl) return null;
   const match = dbUrl.match(/db\.([^.]+)\.supabase\.co/);
@@ -32,9 +29,32 @@ function extractSupabaseUrl(dbUrl) {
   return null;
 }
 
+function getValidSupabaseUrl() {
+  // First try extracting from DATABASE_URL (most reliable)
+  const fromDb = extractSupabaseUrl(process.env.DATABASE_URL);
+  if (fromDb) return fromDb;
+  
+  // Then try SUPABASE_URL if it looks valid
+  const envUrl = process.env.SUPABASE_URL;
+  if (envUrl && envUrl.match(/^https?:\/\//i)) {
+    return envUrl;
+  }
+  
+  return null;
+}
+
+const supabaseUrl = getValidSupabaseUrl();
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
+
 const supabase = supabaseUrl && supabaseKey 
   ? createClient(supabaseUrl, supabaseKey)
   : null;
+
+if (supabase) {
+  console.log('✅ Files storage initialized:', supabaseUrl);
+} else {
+  console.warn('⚠️  Files storage not configured');
+}
 
 const BUCKET_NAME = 'user-files';
 const MAX_STORAGE_BYTES = 10 * 1024 * 1024 * 1024; // 10GB per user

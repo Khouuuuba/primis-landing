@@ -81,6 +81,8 @@ function MoltbotPanel({ user, showToast }) {
   const [loadingInstances, setLoadingInstances] = useState(true)
   const [showWizard, setShowWizard] = useState(false)
   const [skillsInstance, setSkillsInstance] = useState(null) // Instance to manage skills for
+  const [deletingInstanceId, setDeletingInstanceId] = useState(null)
+  const [restartingInstanceId, setRestartingInstanceId] = useState(null)
 
   // Fetch existing instances with polling for active deployments
   useEffect(() => {
@@ -471,6 +473,72 @@ function MoltbotPanel({ user, showToast }) {
     </div>
   )
 
+  // Delete instance handler
+  const handleDeleteInstance = async (instanceId, instanceName) => {
+    if (!confirm(`Are you sure you want to delete "${instanceName}"? This action cannot be undone.`)) {
+      return
+    }
+
+    setDeletingInstanceId(instanceId)
+    
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/moltbot/instances/${instanceId}`,
+        {
+          method: 'DELETE',
+          headers: { 'x-privy-id': user?.id }
+        }
+      )
+
+      if (response.ok) {
+        setInstances(prev => prev.filter(i => i.id !== instanceId))
+        showToast?.('Agent deleted successfully', 'success')
+      } else {
+        const data = await response.json()
+        showToast?.(data.error || 'Failed to delete agent', 'error')
+      }
+    } catch (error) {
+      console.error('Delete error:', error)
+      showToast?.('Failed to delete agent', 'error')
+    } finally {
+      setDeletingInstanceId(null)
+    }
+  }
+
+  // Restart instance handler (redeploy with updated skills)
+  const handleRestartInstance = async (instanceId, instanceName) => {
+    if (!confirm(`Restart "${instanceName}"? This will apply any skill changes and take 2-3 minutes.`)) {
+      return
+    }
+
+    setRestartingInstanceId(instanceId)
+    
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/moltbot/instances/${instanceId}/restart`,
+        {
+          method: 'POST',
+          headers: { 'x-privy-id': user?.id }
+        }
+      )
+
+      if (response.ok) {
+        setInstances(prev => prev.map(i => 
+          i.id === instanceId ? { ...i, status: 'deploying' } : i
+        ))
+        showToast?.('Restart initiated. Your bot will be back online in 2-3 minutes.', 'success')
+      } else {
+        const data = await response.json()
+        showToast?.(data.error || 'Failed to restart agent', 'error')
+      }
+    } catch (error) {
+      console.error('Restart error:', error)
+      showToast?.('Failed to restart agent', 'error')
+    } finally {
+      setRestartingInstanceId(null)
+    }
+  }
+
   // Step 3: Payment
   const handlePayment = async () => {
     setIsProcessingPayment(true)
@@ -722,16 +790,32 @@ function MoltbotPanel({ user, showToast }) {
                 <span>{PROVIDERS[instance.aiProvider]?.name}</span>
                 <span>{instance.channels?.join(', ')}</span>
               </div>
-              {instance.status === 'running' && (
-                <div className="instance-actions">
-                  <button 
-                    className="skills-btn"
-                    onClick={() => setSkillsInstance(instance)}
-                  >
-                    📚 Skills
-                  </button>
-                </div>
-              )}
+              <div className="instance-actions">
+                {instance.status === 'running' && (
+                  <>
+                    <button 
+                      className="action-btn primary"
+                      onClick={() => setSkillsInstance(instance)}
+                    >
+                      Skills
+                    </button>
+                    <button 
+                      className="action-btn secondary"
+                      onClick={() => handleRestartInstance(instance.id, instance.name)}
+                      disabled={restartingInstanceId === instance.id}
+                    >
+                      {restartingInstanceId === instance.id ? 'Restarting...' : 'Restart'}
+                    </button>
+                  </>
+                )}
+                <button 
+                  className="action-btn danger"
+                  onClick={() => handleDeleteInstance(instance.id, instance.name)}
+                  disabled={deletingInstanceId === instance.id}
+                >
+                  {deletingInstanceId === instance.id ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
             </div>
           ))}
         </div>
