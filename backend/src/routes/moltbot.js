@@ -272,6 +272,12 @@ async function deployToRailway(instanceId, name, aiProvider, channels) {
       console.log(`Injecting ${skillsResult.rows.length} skills into system prompt`)
     }
 
+    // Add Brave API key for web search if available
+    if (process.env.BRAVE_API_KEY) {
+      envVars.BRAVE_API_KEY = process.env.BRAVE_API_KEY
+      console.log('Injecting BRAVE_API_KEY for web search')
+    }
+
     // Deploy to Railway
     const deployment = await RailwayProvider.deployMoltbot({
       name,
@@ -501,6 +507,12 @@ router.post('/instances/:id/restart', requireAuth, async (req, res) => {
       // Clear system prompt if no skills
       updatedVars.CLAWDBOT_SYSTEM_PROMPT = ''
       console.log('Restart: No active skills, clearing system prompt')
+    }
+
+    // Add Brave API key for web search if available
+    if (process.env.BRAVE_API_KEY) {
+      updatedVars.BRAVE_API_KEY = process.env.BRAVE_API_KEY
+      console.log('Restart: Injecting BRAVE_API_KEY for web search')
     }
 
     // Update Railway service environment variables
