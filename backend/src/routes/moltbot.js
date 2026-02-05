@@ -480,6 +480,37 @@ router.post('/instances/:id/restart', requireAuth, async (req, res) => {
       })
     }
 
+    // Fetch updated skills for system prompt
+    const skillsResult = await query(
+      `SELECT name, content FROM openclaw_skills 
+       WHERE instance_id = $1 AND is_active = true
+       ORDER BY created_at ASC`,
+      [req.params.id]
+    )
+
+    // Build updated environment variables
+    const updatedVars = {}
+    if (skillsResult.rows.length > 0) {
+      let skillsPrompt = 'KNOWLEDGE BASE - Use this information to answer questions:\n\n'
+      for (const skill of skillsResult.rows) {
+        skillsPrompt += `## ${skill.name}\n${skill.content}\n\n`
+      }
+      updatedVars.CLAWDBOT_SYSTEM_PROMPT = skillsPrompt
+      console.log(`Restart: Injecting ${skillsResult.rows.length} skills into system prompt`)
+    } else {
+      // Clear system prompt if no skills
+      updatedVars.CLAWDBOT_SYSTEM_PROMPT = ''
+      console.log('Restart: No active skills, clearing system prompt')
+    }
+
+    // Update Railway service environment variables
+    await RailwayProvider.setServiceVariables({
+      projectId: instance.railway_project_id,
+      environmentId: instance.railway_environment_id,
+      serviceId: instance.railway_service_id,
+      variables: updatedVars
+    })
+
     // Trigger redeploy
     await RailwayProvider.redeployService(
       instance.railway_service_id,
@@ -492,11 +523,11 @@ router.post('/instances/:id/restart', requireAuth, async (req, res) => {
       [req.params.id]
     )
 
-    // Log restart
+    // Log restart with skill count
     await query(
       `INSERT INTO moltbot_deployment_logs (instance_id, event_type, message)
-       VALUES ($1, 'restart', 'Instance restart triggered')`,
-      [req.params.id]
+       VALUES ($1, 'restart', $2)`,
+      [req.params.id, `Instance restart triggered with ${skillsResult.rows.length} skills`]
     )
 
     res.json({
