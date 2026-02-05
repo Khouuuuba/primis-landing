@@ -431,8 +431,10 @@
         }
 
         .hero-cta .btn-primary,
+        .hero-cta .btn-secondary,
         .hero-cta .btn-beta {
             min-width: 180px;
+            width: 180px;
             justify-content: center;
         }
 
@@ -522,14 +524,44 @@
 
         .arrow-path {
             fill: none;
-            stroke: var(--text-muted);
-            stroke-width: 1;
-            opacity: 0.35;
+            stroke: url(#arrow-gradient);
+            stroke-width: 1.5;
+            stroke-dasharray: 8 80;
+            animation: flowArrow 2s linear infinite;
+        }
+
+        .arrow-path:nth-of-type(1) { animation-delay: 0s; }
+        .arrow-path:nth-of-type(2) { animation-delay: 0.5s; }
+        .arrow-path:nth-of-type(3) { animation-delay: 1s; }
+        .arrow-path:nth-of-type(4) { animation-delay: 1.5s; }
+
+        @keyframes flowArrow {
+            0% { stroke-dashoffset: 88; }
+            100% { stroke-dashoffset: 0; }
         }
 
         .arrow-head {
             fill: var(--text-muted);
-            opacity: 0.35;
+            opacity: 0.5;
+        }
+
+        /* Node highlighting animation */
+        .arch-node {
+            transition: all 0.4s ease;
+        }
+
+        .arch-node.active {
+            color: #c87832;
+            text-shadow: 0 0 20px rgba(200, 120, 50, 0.5);
+        }
+
+        .flywheel-ring {
+            animation: ringPulse 6s ease-in-out infinite;
+        }
+
+        @keyframes ringPulse {
+            0%, 100% { border-color: rgba(255,255,255,0.06); }
+            50% { border-color: rgba(200, 120, 50, 0.15); }
         }
 
         .flywheel-invariant {
@@ -1155,6 +1187,177 @@
             50% { opacity: 0; }
         }
 
+        /* Simple Phone Frame */
+        .phone-frame {
+            width: 300px;
+            background: var(--bg-terminal);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .phone-header {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .phone-header-left {
+            width: 28px;
+        }
+
+        .phone-back {
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            font-weight: 300;
+        }
+
+        .phone-header-center {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .phone-avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #c87832, #a05a1f);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: white;
+        }
+
+        .phone-contact {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .phone-name {
+            font-size: 0.9375rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .phone-status {
+            font-size: 0.6875rem;
+            color: #3b8;
+        }
+
+        .phone-header-right {
+            width: 28px;
+            text-align: right;
+        }
+
+        .phone-menu {
+            color: var(--text-muted);
+            font-size: 1.25rem;
+        }
+
+        /* Chat Area */
+        .phone-chat {
+            flex: 1;
+            min-height: 380px;
+            padding: 16px;
+            background: var(--bg-primary);
+            overflow-y: auto;
+        }
+
+        .chat-mockup {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-family: var(--font-family);
+        }
+
+        .chat-message {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 0.8125rem;
+            line-height: 1.5;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: all 0.4s ease;
+        }
+
+        .chat-message.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .chat-message.user {
+            align-self: flex-end;
+            background: rgba(200, 120, 50, 0.2);
+            color: var(--text-primary);
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-message.bot {
+            align-self: flex-start;
+            background: rgba(255,255,255,0.05);
+            color: var(--text-secondary);
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-message .msg-time {
+            font-size: 0.5625rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+            text-align: right;
+        }
+
+        /* Input Bar */
+        .phone-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.02);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .phone-input-field {
+            flex: 1;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 10px 16px;
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+        }
+
+        .phone-send {
+            width: 32px;
+            height: 32px;
+            background: #c87832;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        @media (max-width: 800px) {
+            .phone-frame {
+                width: 280px;
+            }
+            .phone-chat {
+                min-height: 320px;
+            }
+        }
+
         /* Final CTA */
         .final-cta {
             text-align: center;
@@ -1178,11 +1381,11 @@
             margin-right: auto;
         }
 
-        /* Two-Column CTA Cards */
+        /* Three-Column CTA Cards */
         .cta-cards {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
             max-width: 800px;
             margin: 0 auto;
         }
@@ -1194,6 +1397,8 @@
             padding: 40px 32px;
             text-align: left;
             transition: border-color 0.3s ease;
+            display: flex;
+            flex-direction: column;
         }
 
         .cta-card:hover {
@@ -1258,15 +1463,19 @@
             color: var(--text-secondary);
             line-height: 1.6;
             margin-bottom: 28px;
+            flex: 1;
         }
 
         .cta-card .btn-beta,
         .cta-card .btn-secondary {
             width: 100%;
             justify-content: center;
+            padding: 14px 28px;
+            font-size: 0.875rem;
+            box-sizing: border-box;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
             .cta-cards {
                 grid-template-columns: 1fr;
             }
@@ -1448,6 +1657,32 @@
             .flywheel-ring { width: 150px; height: 150px; }
             .flywheel-arrows { width: 150px; height: 150px; }
             .arch-node { font-size: 0.6875rem; }
+            
+            .hero-cta {
+                flex-direction: column;
+                align-items: center;
+            }
+            .hero-cta .btn-primary,
+            .hero-cta .btn-secondary,
+            .hero-cta .btn-beta {
+                width: 100%;
+                max-width: 280px;
+            }
+            
+            .nav-links {
+                gap: 4px;
+            }
+            .nav-link {
+                padding: 8px 10px;
+                font-size: 0.75rem;
+            }
+            .nav-cta {
+                padding: 8px 12px;
+                font-size: 0.75rem;
+            }
+            .beta-badge {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -1461,9 +1696,9 @@
         <div class="container">
             <div class="announcement-content">
                 <span class="announcement-dot"></span>
-                <span>Devnet Beta is Live</span>
+                <span>Deploy your own assistant in 60 seconds</span>
                 <span style="color: var(--text-secondary);">—</span>
-                <a href="/capitalprovider" class="announcement-link">Try it now →</a>
+                <a href="/aibuilder" class="announcement-link">Try it now →</a>
             </div>
             <button class="announcement-close" id="announcement-close" aria-label="Close announcement">×</button>
         </div>
@@ -1484,6 +1719,7 @@
             <div class="nav-links">
                 <a href="roadmap.html" class="nav-link">Roadmap</a>
                 <a href="/capitalprovider" class="nav-link"><span class="live-dot"></span>Capital Provider<span class="beta-badge">Beta</span></a>
+                <a href="/aibuilder" class="nav-link"><span class="live-dot"></span>Apps<span class="beta-badge">Beta</span></a>
                 <a href="#" class="nav-cta" data-modal-trigger>Request access</a>
             </div>
         </div>
@@ -1510,6 +1746,7 @@
             <div class="hero-cta">
                 <button class="btn-primary" data-modal-trigger>Request access</button>
                 <a href="/capitalprovider" class="btn-beta"><span class="live-indicator"></span>Try Devnet Beta</a>
+                <a href="/aibuilder" class="btn-beta"><span class="live-indicator"></span>Deploy Assistant</a>
             </div>
         </div>
     </section>
@@ -1521,6 +1758,13 @@
                 <div class="flywheel-ring"></div>
                 <div class="flywheel-arrows">
                     <svg viewBox="0 0 200 200">
+                        <defs>
+                            <linearGradient id="arrow-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#c87832;stop-opacity:0.3" />
+                                <stop offset="50%" style="stop-color:#c87832;stop-opacity:0.8" />
+                                <stop offset="100%" style="stop-color:#c87832;stop-opacity:0.3" />
+                            </linearGradient>
+                        </defs>
                         <!-- Clockwise flow: Capital → Yield → Compute → Revenue → Capital -->
                         <!-- Top to Right -->
                         <path class="arrow-path" d="M 120 18 A 82 82 0 0 1 182 80" />
@@ -1804,26 +2048,87 @@
         </div>
     </section>
 
+    <!-- Apps / Personal AI -->
+    <section class="demo-section" id="apps">
+        <div class="container">
+            <div class="demo-content">
+                <div class="demo-label">Apps</div>
+                <h2>Deploy your own assistant in 60 seconds</h2>
+                <p>Create a personal AI assistant that runs 24/7. Connect to Telegram, Discord, or Slack. No coding required.</p>
+                <ul class="demo-features">
+                    <li>Custom personality & knowledge</li>
+                    <li>Persistent memory across chats</li>
+                    <li>Real-time web search</li>
+                    <li>Add skills & integrations</li>
+                </ul>
+                <a href="/aibuilder" class="btn-beta"><span class="live-indicator"></span>Deploy Now</a>
+            </div>
+            <div class="demo-mockup">
+                <div class="phone-frame">
+                    <!-- Simple Header -->
+                    <div class="phone-header">
+                        <div class="phone-header-left">
+                            <span class="phone-back">‹</span>
+                        </div>
+                        <div class="phone-header-center">
+                            <div class="phone-avatar">A</div>
+                            <div class="phone-contact">
+                                <span class="phone-name">Atlas</span>
+                                <span class="phone-status">online</span>
+                            </div>
+                        </div>
+                        <div class="phone-header-right">
+                            <span class="phone-menu">⋯</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Chat Area -->
+                    <div class="phone-chat">
+                        <div class="chat-mockup" id="chat-mockup">
+                            <!-- Chat messages will be animated here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Input Bar -->
+                    <div class="phone-input">
+                        <div class="phone-input-field">Message</div>
+                        <div class="phone-send">↑</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Final CTA -->
     <section class="final-cta">
         <div class="container">
             <h2>Get Started</h2>
             <div class="cta-cards">
-                <!-- Capital Providers Card -->
+                <!-- Apps Card -->
                 <div class="cta-card featured">
+                    <div class="cta-card-label">
+                        Apps
+                        <span class="live-badge">Live</span>
+                    </div>
+                    <h3>Deploy your own assistant</h3>
+                    <p>Create a personal assistant that runs 24/7 on Telegram, Discord, or Slack. No coding required.</p>
+                    <a href="/aibuilder" class="btn-beta"><span class="live-indicator"></span>Deploy Now</a>
+                </div>
+                <!-- Capital Providers Card -->
+                <div class="cta-card">
                     <div class="cta-card-label">
                         Capital Providers
                         <span class="live-badge">Live</span>
                     </div>
                     <h3>Start earning today</h3>
-                    <p>Devnet beta is live. Deposit SOL and earn yield from real AI compute demand. No waitlist required.</p>
+                    <p>Deposit SOL and earn yield from real AI compute demand. No waitlist.</p>
                     <a href="/capitalprovider" class="btn-beta"><span class="live-indicator"></span>Try Devnet Beta</a>
                 </div>
-                <!-- AI Builders Card -->
+                <!-- AI Teams Card -->
                 <div class="cta-card">
-                    <div class="cta-card-label">AI Builders</div>
+                    <div class="cta-card-label">AI Teams</div>
                     <h3>Access cheaper compute</h3>
-                    <p>We're onboarding teams building AI products. Run inference at a fraction of typical cloud costs.</p>
+                    <p>Run inference at a fraction of typical cloud costs. No contracts.</p>
                     <button class="btn-secondary" data-modal-trigger>Request Access</button>
                 </div>
             </div>
@@ -1965,6 +2270,30 @@
         }
         generateSparkline();
 
+        // Flywheel Node Animation
+        function animateFlywheel() {
+            const nodes = document.querySelectorAll('.arch-node');
+            const nodeOrder = ['top', 'right', 'bottom', 'left']; // Capital → Yield → Compute → Revenue
+            let currentIndex = 0;
+
+            function highlightNext() {
+                // Remove active from all
+                nodes.forEach(n => n.classList.remove('active'));
+                
+                // Find and highlight current node
+                const currentClass = nodeOrder[currentIndex];
+                const currentNode = document.querySelector(`.arch-node.${currentClass}`);
+                if (currentNode) currentNode.classList.add('active');
+                
+                // Move to next
+                currentIndex = (currentIndex + 1) % nodeOrder.length;
+            }
+
+            highlightNext();
+            setInterval(highlightNext, 750);
+        }
+        animateFlywheel();
+
         // Portfolio Animation - Cashflow focused
         function animatePortfolio() {
             const totalEarned = document.getElementById('total-earned');
@@ -2069,10 +2398,50 @@
             showNextLine();
         }
 
+        // Chat Animation (Apps section)
+        function animateChat() {
+            const container = document.getElementById('chat-mockup');
+            const conversation = [
+                { type: 'user', text: 'What meetings do I have today?' },
+                { type: 'bot', text: 'You have 2 meetings: Team standup at 10am and Product review at 3pm.' },
+                { type: 'user', text: 'Prepare notes for the product review' },
+                { type: 'bot', text: 'Done! I\'ve created a summary with progress updates and open issues.' },
+                { type: 'user', text: 'What\'s the latest AI news?' },
+                { type: 'bot', text: 'Searching... OpenAI launched new agent APIs, Anthropic released improved tool use.' },
+            ];
+
+            let msgIndex = 0;
+
+            function showNextMessage() {
+                if (msgIndex < conversation.length) {
+                    const msg = conversation[msgIndex];
+                    const el = document.createElement('div');
+                    el.className = `chat-message ${msg.type}`;
+                    el.textContent = msg.text;
+                    container.appendChild(el);
+                    
+                    setTimeout(() => el.classList.add('visible'), 50);
+                    msgIndex++;
+                    
+                    const delay = msg.type === 'user' ? 1400 : 2000;
+                    setTimeout(showNextMessage, delay);
+                } else {
+                    setTimeout(() => {
+                        container.innerHTML = '';
+                        msgIndex = 0;
+                        setTimeout(showNextMessage, 1500);
+                    }, 4000);
+                }
+            }
+
+            showNextMessage();
+        }
+
         // Intersection Observer
         const sections = document.querySelectorAll('section:not(.hero):not(.system-statement)');
         let portfolioStarted = false;
         let builderStarted = false;
+        let chatStarted = false;
 
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
@@ -2085,6 +2454,10 @@
                     if (entry.target.id === 'compute' && !builderStarted) {
                         builderStarted = true;
                         setTimeout(animateBuilder, 600);
+                    }
+                    if (entry.target.id === 'apps' && !chatStarted) {
+                        chatStarted = true;
+                        setTimeout(animateChat, 600);
                     }
                 }
             });
