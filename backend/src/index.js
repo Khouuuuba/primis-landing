@@ -172,6 +172,9 @@ import agentsRoutes from './routes/agents.js'
 import inferenceRoutes from './routes/inference.js'
 import apiKeysRoutes from './routes/api-keys.js'
 import providersRoutes from './routes/providers.js'
+import moltbotRoutes from './routes/moltbot.js'
+import bobRoutes from './routes/bob.js'
+import skillsRoutes from './routes/skills.js'
 import { startScheduler, stopScheduler, getSchedulerStatus, triggerDistribution, getVaultState } from './yield-scheduler.js'
 
 app.use('/api/auth', authRoutes)
@@ -187,6 +190,9 @@ app.use('/api/agents', agentsRoutes)
 app.use('/api/inference', inferenceRoutes)
 app.use('/api/api-keys', apiKeysRoutes)
 app.use('/api/providers', providersRoutes)
+app.use('/api/moltbot', moltbotRoutes)
+app.use('/api/bob', bobRoutes)
+app.use('/api/skills', skillsRoutes)
 
 // =====================
 // SCHEDULER ENDPOINTS

@@ -1,0 +1,282 @@
+.deployment-progress {
+  background: linear-gradient(135deg, #1a1a1a 0%, #141414 100%);
+  border: 1px solid #2a2a2a;
+  border-radius: 16px;
+  padding: 32px;
+  margin: 24px 0;
+}
+
+.deployment-progress.complete {
+  border-color: #2d5a2d;
+  background: linear-gradient(135deg, #1a1f1a 0%, #141714 100%);
+}
+
+/* Header */
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.progress-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #f5f5f5;
+}
+
+.progress-time {
+  font-size: 14px;
+  color: #888;
+  font-family: monospace;
+  background: #222;
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+/* Stages */
+.stages-container {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+.stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 8px;
+  background: #1e1e1e;
+  border-radius: 12px;
+  border: 1px solid #2a2a2a;
+  transition: all 0.3s ease;
+}
+
+.stage.active {
+  background: #252525;
+  border-color: #3a3a3a;
+}
+
+.stage.current {
+  border-color: #c87832;
+  box-shadow: 0 0 20px rgba(200, 120, 50, 0.15);
+}
+
+.stage-indicator {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #2a2a2a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.stage.active .stage-indicator {
+  background: #c87832;
+  color: white;
+}
+
+.stage.active .stage-indicator svg {
+  width: 20px;
+  height: 20px;
+}
+
+.stage-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.stage-info {
+  text-align: center;
+}
+
+.stage-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #888;
+  display: block;
+}
+
+.stage.active .stage-label {
+  color: #f5f5f5;
+}
+
+.stage-desc {
+  font-size: 11px;
+  color: #666;
+  margin-top: 4px;
+  display: block;
+}
+
+/* Capabilities Showcase */
+.capabilities-showcase {
+  background: #1e1e1e;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.capability-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  animation: fadeSlide 0.5s ease;
+}
+
+@keyframes fadeSlide {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.capability-icon {
+  font-size: 40px;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #252525;
+  border-radius: 12px;
+}
+
+.capability-content h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f5f5f5;
+  margin: 0 0 4px 0;
+}
+
+.capability-content p {
+  font-size: 14px;
+  color: #888;
+  margin: 0;
+}
+
+.capability-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.capability-dots .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #333;
+  transition: all 0.3s ease;
+}
+
+.capability-dots .dot.active {
+  background: #c87832;
+  width: 20px;
+  border-radius: 3px;
+}
+
+/* Success State */
+.deploy-success-info {
+  margin-top: 24px;
+}
+
+.success-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #1e2a1e;
+  border: 1px solid #2d5a2d;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.success-icon {
+  font-size: 32px;
+}
+
+.success-details h4 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #f5f5f5;
+  margin: 0 0 4px 0;
+}
+
+.success-details p {
+  font-size: 14px;
+  color: #888;
+  margin: 0 0 12px 0;
+}
+
+.channels-list {
+  display: flex;
+  gap: 8px;
+}
+
+.channel-badge {
+  background: #2d5a2d;
+  color: #8fdf8f;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+/* Estimate Note */
+.estimate-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #666;
+  font-size: 13px;
+}
+
+.estimate-note svg {
+  color: #888;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .deployment-progress {
+    padding: 20px;
+  }
+
+  .stages-container {
+    flex-wrap: wrap;
+  }
+
+  .stage {
+    flex: 1 1 45%;
+    min-width: 120px;
+  }
+
+  .progress-header {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .capability-card {
+    flex-direction: column;
+    text-align: center;
+  }
+}

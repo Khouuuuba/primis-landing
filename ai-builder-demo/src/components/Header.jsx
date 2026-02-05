@@ -20,16 +20,22 @@ function Header({ isLoggedIn, user, credits, onLogout, activeTab, onTabChange })
         {isLoggedIn && (
           <nav className="header-nav">
             <button 
-              className={`nav-link ${activeTab === 'compute' ? 'active' : ''}`}
-              onClick={() => onTabChange('compute')}
+              className={`nav-link ${activeTab === 'agents' ? 'active' : ''}`}
+              onClick={() => onTabChange('agents')}
             >
-              Compute
+              Deployments
             </button>
             <button 
-              className={`nav-link ${activeTab === 'batch' ? 'active' : ''}`}
-              onClick={() => onTabChange('batch')}
+              className={`nav-link ${activeTab === 'serverless' ? 'active' : ''}`}
+              onClick={() => onTabChange('serverless')}
             >
-              Batch
+              Serverless
+            </button>
+            <button 
+              className={`nav-link ${activeTab === 'instances' ? 'active' : ''}`}
+              onClick={() => onTabChange('instances')}
+            >
+              Instances
             </button>
             <button 
               className={`nav-link ${activeTab === 'usage' ? 'active' : ''}`}

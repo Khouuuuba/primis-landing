@@ -1,0 +1,244 @@
+.locked-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.locked-modal {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 16px;
+  padding: 40px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.locked-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 24px;
+  background: rgba(200, 120, 50, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c87832;
+}
+
+.locked-modal h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #f5f5f5;
+  margin: 0 0 12px 0;
+}
+
+.locked-description {
+  color: #888;
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0 0 28px 0;
+}
+
+.locked-description strong {
+  color: #ccc;
+}
+
+.code-input-wrapper {
+  margin-bottom: 16px;
+}
+
+.code-input-wrapper input {
+  width: 100%;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: 16px;
+  color: #f5f5f5;
+  text-align: center;
+  letter-spacing: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  transition: border-color 0.2s;
+}
+
+.code-input-wrapper input:focus {
+  outline: none;
+  border-color: #c87832;
+}
+
+.code-input-wrapper input::placeholder {
+  letter-spacing: 0;
+  color: #555;
+}
+
+.error-message {
+  color: #e74c3c;
+  font-size: 13px;
+  margin: 0 0 16px 0;
+}
+
+.submit-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #c87832 0%, #a66428 100%);
+  border: none;
+  color: white;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(200, 120, 50, 0.4);
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.waitlist-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #2a2a2a;
+}
+
+.waitlist-section p {
+  color: #666;
+  font-size: 13px;
+  margin: 0 0 8px 0;
+}
+
+.waitlist-link {
+  color: #c87832;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.waitlist-link:hover {
+  color: #d89942;
+}
+
+.available-now {
+  margin-top: 24px;
+  padding-top: 20px;
+  position: relative;
+}
+
+.divider-text {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #1a1a1a;
+  padding: 0 12px;
+  color: #555;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.available-now::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #2a2a2a;
+}
+
+.openclaw-btn {
+  width: 100%;
+  background: transparent;
+  border: 1px solid #333;
+  color: #ccc;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.openclaw-btn:hover {
+  border-color: #c87832;
+  color: #c87832;
+  background: rgba(200, 120, 50, 0.05);
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .locked-modal {
+    padding: 32px 24px;
+  }
+  
+  .locked-icon {
+    width: 64px;
+    height: 64px;
+  }
+  
+  .locked-icon svg {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .locked-modal h2 {
+    font-size: 20px;
+  }
+}

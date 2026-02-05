@@ -1,20 +1,54 @@
 import { useState, useCallback, useEffect } from 'react'
 import { usePrivy } from '@privy-io/react-auth'
-import Header from './components/Header'
+import Sidebar from './components/Sidebar'
+import HomeDashboard from './components/HomeDashboard'
 import ConnectWallet from './components/ConnectWallet'
-import Dashboard from './components/Dashboard'
+import AgentsPanel from './components/AgentsPanel'
+import ServerlessPanel from './components/ServerlessPanel'
+import InstancesPanel from './components/InstancesPanel'
+import FilesPanel from './components/FilesPanel'
 import UsagePanel from './components/UsagePanel'
-import BatchPanel from './components/BatchPanel'
+import ApiKeysPanel from './components/ApiKeysPanel'
+import MoltbotPanel from './components/MoltbotPanel'
+import LockedFeatureModal from './components/LockedFeatureModal'
 import Toast from './components/Toast'
 import * as api from './api'
 import './App.css'
+
+// Features that require access code (locked for public launch)
+const LOCKED_FEATURES = {
+  serverless: 'Serverless Compute',
+  instances: 'GPU Instances',
+  agents: 'Deployments',
+  files: 'File Storage',
+  usage: 'Usage & Billing',
+  keys: 'API Keys'
+}
 
 function App() {
   const { ready, authenticated, user, login, logout } = usePrivy()
   const [credits, setCredits] = useState(500.00) // USD credits
   const [toasts, setToasts] = useState([])
   const [backendConnected, setBackendConnected] = useState(false)
-  const [activeTab, setActiveTab] = useState('compute')
+  
+  // Initialize activeTab from URL param or localStorage
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    const urlTab = params.get('tab')
+    if (urlTab && !['serverless', 'instances', 'agents', 'files', 'usage', 'keys'].includes(urlTab)) {
+      return urlTab
+    }
+    return localStorage.getItem('primis_activeTab') || 'home'
+  })
+  
+  const [loadingTime, setLoadingTime] = useState(0)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [lockedModal, setLockedModal] = useState({ isOpen: false, featureName: '' })
+  
+  // Persist activeTab to localStorage
+  useEffect(() => {
+    localStorage.setItem('primis_activeTab', activeTab)
+  }, [activeTab])
 
   const showToast = useCallback((message, type = 'info') => {
     const id = Date.now()
@@ -34,11 +68,29 @@ function App() {
     })
   }, [])
 
-  // Handle payment redirect (success/cancel)
+  // Handle URL params (tab navigation, payment redirect)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
+    const tab = params.get('tab')
+    const openclawStatus = params.get('openclaw')
     const payment = params.get('payment')
     const sessionId = params.get('session_id')
+
+    // Auto-navigate to tab if specified in URL (e.g., after Stripe redirect)
+    if (tab && !LOCKED_FEATURES[tab]) {
+      setActiveTab(tab)
+      // Clear tab param from URL
+      params.delete('tab')
+      const newUrl = params.toString() 
+        ? `${window.location.pathname}?${params.toString()}`
+        : window.location.pathname
+      window.history.replaceState({}, '', newUrl)
+    }
+    
+    // Handle OpenClaw payment redirect
+    if (openclawStatus === 'success' || openclawStatus === 'cancelled') {
+      setActiveTab('moltbot')
+    }
 
     if (payment === 'success' && sessionId && user) {
       // Verify payment and update credits
@@ -120,7 +172,27 @@ function App() {
   const handleLogout = () => {
     logout()
     setCredits(500.00) // Reset credits on logout
+    setActiveTab('home')
+    setSidebarOpen(false)
     showToast('Signed out', 'info')
+  }
+
+  // Handle tab change and close mobile sidebar
+  const handleTabChange = (tab) => {
+    // Check if feature is locked
+    if (LOCKED_FEATURES[tab]) {
+      setLockedModal({ isOpen: true, featureName: LOCKED_FEATURES[tab] })
+      setSidebarOpen(false)
+      return
+    }
+    setActiveTab(tab)
+    setSidebarOpen(false) // Close sidebar on mobile when navigating
+  }
+
+  // Close locked modal and navigate to OpenClaw
+  const handleLockedModalClose = () => {
+    setLockedModal({ isOpen: false, featureName: '' })
+    setActiveTab('moltbot')
   }
 
   const handleCreditsChange = (amount) => {
@@ -137,55 +209,154 @@ function App() {
     }
   }
 
-  // Show loading while Privy initializes
+  // Show loading while Privy initializes (with timeout info)
+  useEffect(() => {
+    if (!ready) {
+      const timer = setInterval(() => setLoadingTime(t => t + 1), 1000)
+      return () => clearInterval(timer)
+    }
+  }, [ready])
+  
   if (!ready) {
     return (
       <div className="app loading-screen">
         <div className="loading-spinner"></div>
-        <p>Loading...</p>
+        <p>Connecting to Privy...</p>
+        {loadingTime > 3 && (
+          <p style={{ fontSize: '12px', color: '#888', marginTop: '10px' }}>
+            Taking longer than expected... Check console for errors (F12)
+          </p>
+        )}
       </div>
     )
   }
 
+  // Render main content based on active tab
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'home':
+        return (
+          <HomeDashboard
+            onNavigate={handleTabChange}
+            credits={credits}
+            privyId={user?.id}
+            showToast={showToast}
+          />
+        )
+      case 'serverless':
+        return (
+          <ServerlessPanel
+            credits={credits}
+            privyId={user?.id}
+            onCreditsUpdate={setCredits}
+            showToast={showToast}
+          />
+        )
+      case 'instances':
+        return (
+          <InstancesPanel
+            user={user}
+            credits={credits}
+          />
+        )
+      case 'agents':
+        return (
+          <AgentsPanel
+            user={user}
+            credits={credits}
+            showToast={showToast}
+          />
+        )
+      case 'files':
+        return (
+          <FilesPanel
+            user={user}
+          />
+        )
+      case 'usage':
+        return (
+          <UsagePanel
+            credits={credits}
+            privyId={user?.id}
+            onCreditsUpdate={setCredits}
+            showToast={showToast}
+          />
+        )
+      case 'keys':
+        return (
+          <ApiKeysPanel
+            privyId={user?.id}
+            showToast={showToast}
+          />
+        )
+      case 'moltbot':
+        return (
+          <MoltbotPanel
+            user={user}
+            showToast={showToast}
+          />
+        )
+      default:
+        return (
+          <HomeDashboard
+            onNavigate={handleTabChange}
+            credits={credits}
+            privyId={user?.id}
+            showToast={showToast}
+          />
+        )
+    }
+  }
+
   return (
     <div className="app">
-      <Header 
-        isLoggedIn={authenticated}
-        user={getUserInfo()}
-        credits={credits}
-        onLogout={handleLogout}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
-      
       {!authenticated ? (
         <ConnectWallet onLogin={handleLogin} />
-      ) : activeTab === 'compute' ? (
-        <Dashboard 
-          credits={credits}
-          onCreditsChange={handleCreditsChange}
-          showToast={showToast}
-        />
-      ) : activeTab === 'batch' ? (
-        <BatchPanel
-          credits={credits}
-          privyId={user?.id}
-          onCreditsUpdate={setCredits}
-          showToast={showToast}
-        />
-      ) : activeTab === 'usage' ? (
-        <UsagePanel
-          credits={credits}
-          privyId={user?.id}
-          onCreditsUpdate={setCredits}
-          showToast={showToast}
-        />
       ) : (
-        <Dashboard 
-          credits={credits}
-          onCreditsChange={handleCreditsChange}
-          showToast={showToast}
-        />
+        <div className="app-layout">
+          {/* Mobile Header */}
+          <header className="mobile-header">
+            <button className="menu-toggle" onClick={() => setSidebarOpen(true)}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
+            <div className="mobile-logo">
+              <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <mask id="ring-mobile">
+                    <circle cx="50" cy="50" r="45" fill="white"/>
+                    <ellipse cx="50" cy="48" rx="24" ry="20" fill="black"/>
+                  </mask>
+                </defs>
+                <circle cx="50" cy="50" r="45" fill="#F2E8DE" mask="url(#ring-mobile)"/>
+              </svg>
+              <span>Primis</span>
+            </div>
+            <div className="mobile-credits">${credits.toFixed(0)}</div>
+          </header>
+
+          {/* Sidebar Overlay */}
+          <div 
+            className={`sidebar-overlay ${sidebarOpen ? 'visible' : ''}`}
+            onClick={() => setSidebarOpen(false)}
+          />
+
+          {/* Sidebar */}
+          <Sidebar
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            onLogout={handleLogout}
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+          />
+
+          <main className="main-content">
+            {renderContent()}
+          </main>
+        </div>
       )}
 
       <div className="toast-container">
@@ -193,6 +364,13 @@ function App() {
           <Toast key={toast.id} message={toast.message} type={toast.type} />
         ))}
       </div>
+
+      {/* Locked Feature Modal */}
+      <LockedFeatureModal
+        isOpen={lockedModal.isOpen}
+        onClose={handleLockedModalClose}
+        featureName={lockedModal.featureName}
+      />
     </div>
   )
 }

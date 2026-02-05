@@ -131,7 +131,19 @@ router.post('/webhook', async (req, res) => {
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object
-      await handleSuccessfulPayment(session)
+      if (session.metadata?.type === 'openclaw_subscription') {
+        await handleOpenClawSubscription(session)
+      } else {
+        await handleSuccessfulPayment(session)
+      }
+      break
+    }
+    
+    case 'customer.subscription.deleted': {
+      const subscription = event.data.object
+      if (subscription.metadata?.type === 'openclaw_subscription') {
+        await handleOpenClawCancellation(subscription)
+      }
       break
     }
     
@@ -146,6 +158,62 @@ router.post('/webhook', async (req, res) => {
 
   res.json({ received: true })
 })
+
+/**
+ * Handle OpenClaw subscription activation
+ */
+async function handleOpenClawSubscription(session) {
+  const { userId, aiProvider, channels, instanceName } = session.metadata
+  const subscriptionId = session.subscription
+
+  console.log(`OpenClaw subscription activated for user ${userId}`)
+
+  try {
+    // Update the instance to mark as paid and ready for deploy
+    await query(
+      `UPDATE moltbot_instances 
+       SET subscription_id = $1,
+           subscription_status = 'active',
+           updated_at = NOW()
+       WHERE user_id = $2 AND status = 'pending'
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [subscriptionId, userId]
+    )
+
+    console.log(`OpenClaw subscription recorded for user ${userId}`)
+  } catch (error) {
+    console.error('Failed to record OpenClaw subscription:', error)
+  }
+}
+
+/**
+ * Handle OpenClaw subscription cancellation
+ */
+async function handleOpenClawCancellation(subscription) {
+  const { userId } = subscription.metadata
+  const subscriptionId = subscription.id
+
+  console.log(`OpenClaw subscription cancelled for user ${userId}`)
+
+  try {
+    // Mark the instance as stopped and subscription cancelled
+    await query(
+      `UPDATE moltbot_instances 
+       SET status = 'stopped',
+           subscription_status = 'canceled',
+           stopped_at = NOW(),
+           updated_at = NOW()
+       WHERE subscription_id = $1`,
+      [subscriptionId]
+    )
+
+    // TODO: Stop the Railway service
+
+  } catch (error) {
+    console.error('Failed to handle OpenClaw cancellation:', error)
+  }
+}
 
 /**
  * Handle successful payment - add credits to user account
@@ -291,6 +359,181 @@ router.post('/verify', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Payment verification error:', error)
     res.status(500).json({ error: 'Failed to verify payment' })
+  }
+})
+
+// =============================================================================
+// OPENCLAW SUBSCRIPTION
+// =============================================================================
+
+/**
+ * POST /api/payments/openclaw-checkout
+ * Create a Stripe checkout session for OpenClaw subscription ($30/mo)
+ */
+router.post('/openclaw-checkout', requireAuth, async (req, res) => {
+  try {
+    if (!stripe) {
+      return res.status(503).json({ error: 'Payment service not configured' })
+    }
+
+    const { aiProvider, channels, instanceName } = req.body
+    const userId = req.user.id
+    const userEmail = req.user.email
+
+    // Get or create Stripe customer
+    let customerId = req.user.stripe_customer_id
+    
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: userEmail,
+        metadata: {
+          userId: userId,
+          privyId: req.user.privy_id
+        }
+      })
+      customerId = customer.id
+      
+      // Save customer ID to database
+      await query(
+        `UPDATE users SET stripe_customer_id = $1 WHERE id = $2`,
+        [customerId, userId]
+      )
+    }
+
+    // Get or create the OpenClaw subscription price
+    let priceId = process.env.STRIPE_OPENCLAW_PRICE_ID
+    
+    if (!priceId) {
+      // Create product and price if not configured
+      const product = await stripe.products.create({
+        name: 'OpenClaw Hosting',
+        description: 'Personal AI assistant hosting - Telegram, Discord, Slack & more',
+        metadata: { type: 'openclaw_subscription' }
+      })
+
+      const price = await stripe.prices.create({
+        product: product.id,
+        unit_amount: 3000, // $30.00
+        currency: 'usd',
+        recurring: { interval: 'month' }
+      })
+      
+      priceId = price.id
+      console.log(`Created OpenClaw price: ${priceId} - Save this as STRIPE_OPENCLAW_PRICE_ID`)
+    }
+
+    // Create checkout session for subscription
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      success_url: `${process.env.AI_BUILDER_URL || 'http://localhost:5173'}?tab=moltbot&openclaw=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.AI_BUILDER_URL || 'http://localhost:5173'}?tab=moltbot&openclaw=cancelled`,
+      metadata: {
+        userId: userId,
+        type: 'openclaw_subscription',
+        aiProvider: aiProvider || 'anthropic',
+        channels: JSON.stringify(channels || ['telegram']),
+        instanceName: instanceName || 'my-openclaw'
+      },
+      subscription_data: {
+        metadata: {
+          userId: userId,
+          type: 'openclaw_subscription',
+          aiProvider: aiProvider || 'anthropic'
+        }
+      }
+    })
+
+    res.json({
+      sessionId: session.id,
+      url: session.url
+    })
+
+  } catch (error) {
+    console.error('OpenClaw checkout error:', error)
+    res.status(500).json({ error: 'Failed to create checkout session' })
+  }
+})
+
+/**
+ * GET /api/payments/openclaw-subscription
+ * Get user's OpenClaw subscription status
+ */
+router.get('/openclaw-subscription', requireAuth, async (req, res) => {
+  try {
+    if (!stripe) {
+      return res.json({ hasSubscription: false })
+    }
+
+    const customerId = req.user.stripe_customer_id
+    
+    if (!customerId) {
+      return res.json({ hasSubscription: false })
+    }
+
+    // Get active subscriptions
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: 'active',
+      limit: 10
+    })
+
+    const openclawSub = subscriptions.data.find(
+      sub => sub.metadata?.type === 'openclaw_subscription'
+    )
+
+    if (openclawSub) {
+      res.json({
+        hasSubscription: true,
+        subscription: {
+          id: openclawSub.id,
+          status: openclawSub.status,
+          currentPeriodEnd: new Date(openclawSub.current_period_end * 1000),
+          cancelAtPeriodEnd: openclawSub.cancel_at_period_end
+        }
+      })
+    } else {
+      res.json({ hasSubscription: false })
+    }
+
+  } catch (error) {
+    console.error('Subscription check error:', error)
+    res.status(500).json({ error: 'Failed to check subscription' })
+  }
+})
+
+/**
+ * POST /api/payments/openclaw-cancel
+ * Cancel OpenClaw subscription (at period end)
+ */
+router.post('/openclaw-cancel', requireAuth, async (req, res) => {
+  try {
+    if (!stripe) {
+      return res.status(503).json({ error: 'Payment service not configured' })
+    }
+
+    const { subscriptionId } = req.body
+    
+    // Cancel at period end (user keeps access until billing period ends)
+    const subscription = await stripe.subscriptions.update(subscriptionId, {
+      cancel_at_period_end: true
+    })
+
+    res.json({
+      success: true,
+      cancelAt: new Date(subscription.cancel_at * 1000)
+    })
+
+  } catch (error) {
+    console.error('Subscription cancel error:', error)
+    res.status(500).json({ error: 'Failed to cancel subscription' })
   }
 })
 

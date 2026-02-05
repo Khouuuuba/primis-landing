@@ -1,0 +1,25 @@
+# Railway.toml for Moltbot deployment
+# This configuration is used by Primis to deploy Moltbot instances
+
+[build]
+# Build from the official Moltbot Dockerfile
+# The source will be cloned from the Moltbot repo
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# Moltbot gateway port
+startCommand = "node dist/index.js gateway --allow-unconfigured --port 3000 --bind lan"
+healthcheckPath = "/"
+healthcheckTimeout = 300
+
+# Resource allocation (same as fly.toml)
+numReplicas = 1
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 5
+
+[env]
+NODE_ENV = "production"
+CLAWDBOT_STATE_DIR = "/data"
+CLAWDBOT_PREFER_PNPM = "1"
+NODE_OPTIONS = "--max-old-space-size=1536"

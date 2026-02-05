@@ -1,0 +1,413 @@
+.launch-configurator {
+  position: sticky;
+  top: 84px;
+}
+
+.launch-configurator.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.empty-content {
+  text-align: center;
+  padding: 40px 24px;
+}
+
+.empty-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border-color);
+  border-radius: 12px;
+}
+
+.empty-icon svg {
+  width: 24px;
+  height: 24px;
+  color: var(--text-muted);
+}
+
+.empty-content h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.empty-content p {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.connection-warning {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 10px 14px;
+  background: var(--warning-dim);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--warning);
+}
+
+/* Header */
+.config-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.config-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.clear-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.15s ease;
+}
+
+.clear-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+.clear-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Selected GPU */
+.selected-gpu {
+  padding: 16px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(200, 120, 50, 0.2);
+  border-radius: 10px;
+  margin-bottom: 24px;
+}
+
+.gpu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.gpu-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.provider-badge {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--accent);
+}
+
+.gpu-specs {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.spec-sep {
+  margin: 0 6px;
+  opacity: 0.5;
+}
+
+.gpu-pricing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.primis-rate {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.market-rate {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.savings-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  background: var(--success-dim);
+  color: var(--success);
+  border-radius: 4px;
+}
+
+/* Config Fields */
+.config-field {
+  margin-bottom: 24px;
+}
+
+.field-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.field-label .optional {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.field-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+/* Text Input */
+.text-input {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.15s ease;
+}
+
+.text-input::placeholder {
+  color: var(--text-muted);
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg-card);
+}
+
+/* Template List */
+.template-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.template-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 12px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.template-btn:hover {
+  border-color: var(--border-hover);
+}
+
+.template-btn.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+
+.template-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.template-btn.active .template-name {
+  color: var(--accent);
+}
+
+.template-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Volume Selector */
+.volume-selector {
+  display: flex;
+  gap: 8px;
+}
+
+.volume-btn {
+  flex: 1;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.volume-btn:hover {
+  border-color: var(--border-hover);
+  color: var(--text-secondary);
+}
+
+.volume-btn.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Pricing Info */
+.pricing-info {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.price-row:not(:last-child) {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.price-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.price-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.price-row.savings .price-value {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.price-row.highlight {
+  background: var(--info-dim);
+  margin: 8px -16px -16px;
+  padding: 12px 16px;
+  border-radius: 0 0 9px 9px;
+  border-bottom: none;
+}
+
+.price-row.highlight .price-label,
+.price-row.highlight .price-value {
+  color: var(--info);
+  font-weight: 500;
+}
+
+/* Launch Button */
+.launch-btn {
+  width: 100%;
+  padding: 14px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bg-primary);
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+}
+
+.launch-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 85%, white);
+  transform: translateY(-1px);
+}
+
+.launch-btn.disabled {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  cursor: not-allowed;
+}
+
+.launch-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.credits-warning {
+  text-align: center;
+  font-size: 12px;
+  color: var(--error);
+  margin-top: 12px;
+}
+
+/* Launch Info */
+.launch-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.info-item svg {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+@media (max-width: 1200px) {
+  .launch-configurator {
+    position: static;
+  }
+}

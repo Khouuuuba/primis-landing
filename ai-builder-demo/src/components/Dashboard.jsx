@@ -1,269 +1,269 @@
 import { useState, useEffect, useCallback } from 'react'
 import StatsBar from './StatsBar'
 import GpuMarketplace from './GpuMarketplace'
-import JobConfigurator from './JobConfigurator'
-import JobQueue from './JobQueue'
-import TrustFooter from './TrustFooter'
+import LaunchConfigurator from './LaunchConfigurator'
+import InstanceList from './InstanceList'
+// TrustFooter removed - not needed for now
 import * as api from '../api'
 import './Dashboard.css'
 
-// GPU instances with realistic cloud pricing
-const GPU_INSTANCES = [
-  {
-    id: 'a100-40gb',
-    name: 'A100 40GB',
-    type: 'gpu-a100-40',
-    memory: '40 GB HBM2e',
-    vram: 40,
-    vcpus: 12,
-    ram: '120 GB',
-    storage: '512 GB NVMe',
-    marketRate: 2.79,
-    primisRate: 1.89,
-    available: 156,
-    badge: 'Popular'
-  },
-  {
-    id: 'a100-80gb',
-    name: 'A100 80GB',
-    type: 'gpu-a100-80',
-    memory: '80 GB HBM2e',
-    vram: 80,
-    vcpus: 16,
-    ram: '240 GB',
-    storage: '1 TB NVMe',
-    marketRate: 4.19,
-    primisRate: 2.85,
-    available: 84,
-    badge: null
-  },
-  {
-    id: 'h100-80gb',
-    name: 'H100 80GB',
-    type: 'gpu-h100-80',
-    memory: '80 GB HBM3',
-    vram: 80,
-    vcpus: 24,
-    ram: '360 GB',
-    storage: '2 TB NVMe',
-    marketRate: 8.25,
-    primisRate: 5.78,
-    available: 32,
-    badge: 'Fastest'
-  },
-  {
-    id: 'l40s-48gb',
-    name: 'L40S 48GB',
-    type: 'gpu-l40s-48',
-    memory: '48 GB GDDR6',
-    vram: 48,
-    vcpus: 8,
-    ram: '64 GB',
-    storage: '256 GB NVMe',
-    marketRate: 1.89,
-    primisRate: 1.29,
-    available: 248,
-    badge: 'Value'
-  },
-  {
-    id: 'mi300x-192gb',
-    name: 'MI300X 192GB',
-    type: 'gpu-mi300x-192',
-    memory: '192 GB HBM3',
-    vram: 192,
-    vcpus: 24,
-    ram: '480 GB',
-    storage: '2 TB NVMe',
-    marketRate: 6.49,
-    primisRate: 4.42,
-    available: 24,
-    badge: 'Large Models'
-  }
-]
-
 function Dashboard({ credits, onCreditsChange, showToast }) {
-  const [selectedInstance, setSelectedInstance] = useState(null)
-  const [jobs, setJobs] = useState([])
-  const [jobIdCounter, setJobIdCounter] = useState(1001)
+  const [gpuOfferings, setGpuOfferings] = useState([])
+  const [selectedGpu, setSelectedGpu] = useState(null)
+  const [instances, setInstances] = useState([])
+  const [templates, setTemplates] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [instancesLoading, setInstancesLoading] = useState(true)
   const [backendConnected, setBackendConnected] = useState(false)
 
-  // Check backend connectivity on mount
+  // Fetch GPU offerings from all providers
+  const fetchGpuOfferings = useCallback(async () => {
+    try {
+      const data = await api.getGpuOfferings()
+      if (data.success && data.offerings) {
+        // Transform to format expected by GpuMarketplace
+        const transformed = data.offerings.map(o => ({
+          id: o.id,
+          name: o.gpuType,
+          type: o.id,
+          vram: o.vramGb,
+          vcpus: o.metadata?.cpuCores || 8,
+          ram: o.metadata?.ramGb ? `${o.metadata.ramGb} GB` : '32 GB',
+          storage: o.metadata?.diskSpace ? `${Math.round(o.metadata.diskSpace)} GB` : '100 GB',
+          marketRate: o.marketPrice,
+          primisRate: o.pricePerHour,
+          available: o.available ? 50 : 0,
+          badge: getBadge(o),
+          provider: o.provider,
+          region: o.region,
+          reliability: o.reliability
+        }))
+        setGpuOfferings(transformed)
+      }
+    } catch (err) {
+      console.error('Failed to fetch GPU offerings:', err)
+      showToast('Failed to load GPU offerings', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }, [showToast])
+
+  // Fetch user's instances
+  const fetchInstances = useCallback(async () => {
+    if (!backendConnected) {
+      setInstancesLoading(false)
+      return
+    }
+    try {
+      const data = await api.getInstances()
+      if (data.success && data.instances) {
+        setInstances(data.instances)
+      }
+    } catch (err) {
+      console.error('Failed to fetch instances:', err)
+    } finally {
+      setInstancesLoading(false)
+    }
+  }, [backendConnected])
+
+  // Fetch templates
+  const fetchTemplates = useCallback(async () => {
+    try {
+      const data = await api.getTemplates()
+      if (data.success && data.templates) {
+        setTemplates(data.templates)
+      }
+    } catch (err) {
+      console.error('Failed to fetch templates:', err)
+    }
+  }, [])
+
+  // Check backend connectivity and fetch data
   useEffect(() => {
     api.checkHealth().then(result => {
       setBackendConnected(result.connected)
+      if (result.connected) {
+        fetchGpuOfferings()
+        fetchTemplates()
+      } else {
+        setLoading(false)
+        setInstancesLoading(false)
+      }
     })
-  }, [])
+  }, [fetchGpuOfferings, fetchTemplates])
 
-  // Simulate job progress
+  // Fetch instances after backend check
   useEffect(() => {
-    const interval = setInterval(() => {
-      setJobs(prevJobs => 
-        prevJobs.map(job => {
-          if (job.status === 'pending') {
-            // Move to running
-            if (Math.random() < 0.25) {
-              return { ...job, status: 'running', progress: 0, startedAt: new Date() }
-            }
-          } else if (job.status === 'running') {
-            const elapsed = (Date.now() - new Date(job.startedAt).getTime()) / 1000
-            const duration = job.estimatedMinutes * 60
-            const newProgress = Math.min(100, (elapsed / duration) * 100 + Math.random() * 2)
-            
-            if (newProgress >= 100) {
-              return { ...job, status: 'completed', progress: 100, completedAt: new Date() }
-            }
-            return { ...job, progress: newProgress }
-          }
-          return job
-        })
-      )
-    }, 1000)
+    if (backendConnected) {
+      fetchInstances()
+    }
+  }, [backendConnected, fetchInstances])
 
-    return () => clearInterval(interval)
-  }, [])
-
-  const handleSubmitJob = useCallback(async (jobConfig) => {
-    const { instance, count, hours, workload, jobName } = jobConfig
-    const cost = instance.primisRate * count * hours
+  // Refresh instances periodically (every 10 seconds for running instances)
+  useEffect(() => {
+    if (!backendConnected) return
     
-    if (cost > credits) {
-      showToast('Insufficient credits', 'error')
+    const hasActiveInstances = instances.some(i => 
+      ['pending', 'starting', 'running'].includes(i.status)
+    )
+    
+    if (hasActiveInstances) {
+      const interval = setInterval(fetchInstances, 10000)
+      return () => clearInterval(interval)
+    }
+  }, [backendConnected, instances, fetchInstances])
+
+  // Get badge based on GPU characteristics
+  function getBadge(gpu) {
+    if (gpu.gpuType?.includes('H100') || gpu.gpuType?.includes('H200')) return 'Fastest'
+    if (gpu.gpuType?.includes('A100')) return 'Popular'
+    if (gpu.pricePerHour < 0.15) return 'Budget'
+    if (gpu.gpuType?.includes('4090') || gpu.gpuType?.includes('5090')) return 'Value'
+    if (gpu.vramGb >= 80) return 'Large Models'
+    return null
+  }
+
+  // Launch instance handler
+  const handleLaunchInstance = useCallback(async (config) => {
+    const { gpu, templateId, name, volumeSize } = config
+    
+    // Estimate first hour cost
+    const hourlyRate = gpu.primisRate
+    if (hourlyRate > credits) {
+      showToast('Insufficient credits for first hour', 'error')
       return
     }
 
     try {
-      if (backendConnected) {
-        // Use real API
-        const result = await api.createJob({
-          name: jobName || `${workload} job`,
-          gpuType: instance.type,
-          gpuCount: count,
-          hours,
-          workloadType: workload
-        })
-        
-        const newJob = {
-          id: result.job.id,
-          name: result.job.name,
-          instance: instance.name,
-          instanceType: instance.type,
-          count,
-          hours,
-          workload,
-          cost: result.cost,
-          status: 'pending',
-          progress: 0,
-          estimatedMinutes: Math.ceil(hours * 60 * (0.3 + Math.random() * 0.4)),
-          submittedAt: new Date()
-        }
-        
-        setJobs(prev => [newJob, ...prev])
-        onCreditsChange(-result.cost)
-        showToast(`Job submitted`, 'success')
+      const result = await api.launchInstance({
+        gpuId: gpu.id,
+        gpuCount: 1,
+        templateId: templateId || 'pytorch-2.0',
+        name: name || `${gpu.name}-${Date.now().toString(36)}`,
+        volumeSize: volumeSize || 20
+      })
+
+      if (result.success) {
+        showToast(`Instance launching: ${result.instance.name}`, 'success')
+        setSelectedGpu(null)
+        // Refresh instances list
+        await fetchInstances()
       } else {
-        // Demo mode
-        const newJob = {
-          id: `job-${jobIdCounter}`,
-          name: jobName || `${workload} job`,
-          instance: instance.name,
-          instanceType: instance.type,
-          count,
-          hours,
-          workload,
-          cost,
-          status: 'pending',
-          progress: 0,
-          estimatedMinutes: Math.ceil(hours * 60 * (0.3 + Math.random() * 0.4)),
-          submittedAt: new Date()
-        }
-
-        setJobs(prev => [newJob, ...prev])
-        setJobIdCounter(prev => prev + 1)
-        onCreditsChange(-cost)
-        showToast(`Job ${newJob.id} submitted`, 'success')
+        throw new Error(result.error || 'Launch failed')
       }
-      
-      setSelectedInstance(null)
     } catch (err) {
-      showToast(err.message || 'Failed to submit job', 'error')
+      console.error('Launch error:', err)
+      showToast(err.message || 'Failed to launch instance', 'error')
     }
-  }, [credits, jobIdCounter, onCreditsChange, showToast, backendConnected])
+  }, [credits, showToast, fetchInstances])
 
-  const handleTerminateJob = useCallback(async (jobId) => {
+  // Stop instance
+  const handleStopInstance = useCallback(async (instanceId) => {
     try {
-      if (backendConnected && !jobId.startsWith('job-')) {
-        // Use real API for backend jobs
-        const result = await api.terminateJob(jobId)
-        onCreditsChange(result.refund)
-        showToast(`Job terminated. $${result.refund.toFixed(2)} refunded`, 'info')
-        
-        setJobs(prev => prev.map(job => 
-          job.id === jobId ? { ...job, status: 'terminated' } : job
-        ))
-      } else {
-        // Demo mode
-        setJobs(prev => prev.map(job => {
-          if (job.id === jobId && (job.status === 'pending' || job.status === 'running')) {
-            const usedFraction = job.status === 'pending' ? 0 : job.progress / 100
-            const refund = job.cost * (1 - usedFraction)
-            onCreditsChange(refund)
-            showToast(`Job terminated. $${refund.toFixed(2)} refunded`, 'info')
-            return { ...job, status: 'terminated' }
-          }
-          return job
-        }))
+      const result = await api.stopInstance(instanceId)
+      if (result.success) {
+        showToast(`Instance stopped. Runtime: ${Math.round(result.runtime / 60)}m, Cost: $${result.cost?.toFixed(2)}`, 'info')
+        await fetchInstances()
       }
     } catch (err) {
-      showToast(err.message || 'Failed to terminate job', 'error')
+      showToast(err.message || 'Failed to stop instance', 'error')
     }
-  }, [onCreditsChange, showToast, backendConnected])
+  }, [showToast, fetchInstances])
+
+  // Restart instance
+  const handleRestartInstance = useCallback(async (instanceId) => {
+    try {
+      const result = await api.restartInstance(instanceId)
+      if (result.success) {
+        showToast('Instance restarting...', 'success')
+        await fetchInstances()
+      }
+    } catch (err) {
+      showToast(err.message || 'Failed to restart instance', 'error')
+    }
+  }, [showToast, fetchInstances])
+
+  // Terminate instance
+  const handleTerminateInstance = useCallback(async (instanceId) => {
+    try {
+      const result = await api.terminateInstance(instanceId)
+      if (result.success) {
+        showToast(`Instance terminated. Final cost: $${result.finalCost?.toFixed(2) || '0.00'}`, 'info')
+        await fetchInstances()
+      }
+    } catch (err) {
+      showToast(err.message || 'Failed to terminate instance', 'error')
+    }
+  }, [showToast, fetchInstances])
+
+  // Refresh single instance
+  const handleRefreshInstance = useCallback(async (instanceId) => {
+    try {
+      const data = await api.getInstance(instanceId)
+      if (data.success && data.instance) {
+        setInstances(prev => prev.map(inst => 
+          inst.id === instanceId ? { ...inst, ...data.instance } : inst
+        ))
+      }
+    } catch (err) {
+      console.error('Failed to refresh instance:', err)
+    }
+  }, [])
 
   // Stats
-  const runningJobs = jobs.filter(j => j.status === 'running').length
-  const pendingJobs = jobs.filter(j => j.status === 'pending').length
-  const completedJobs = jobs.filter(j => j.status === 'completed').length
-  const totalSpent = jobs.filter(j => j.status === 'completed').reduce((acc, j) => acc + j.cost, 0)
-  const totalSaved = jobs.filter(j => j.status === 'completed').reduce((acc, job) => {
-    const inst = GPU_INSTANCES.find(g => g.type === job.instanceType)
-    if (inst) return acc + (inst.marketRate - inst.primisRate) * job.count * job.hours
-    return acc
+  const runningInstances = instances.filter(i => i.status === 'running').length
+  const startingInstances = instances.filter(i => ['pending', 'starting'].includes(i.status)).length
+  const totalSpent = instances.reduce((acc, i) => acc + parseFloat(i.total_cost_usd || 0), 0)
+  const totalSaved = instances.reduce((acc, i) => {
+    // Estimate savings (market rate - primis rate) * runtime
+    const runtimeHours = (i.total_runtime_seconds || 0) / 3600
+    const primisRate = parseFloat(i.cost_per_hour || 0)
+    const marketRate = primisRate * 1.3 // Estimate market as 30% higher
+    return acc + (marketRate - primisRate) * runtimeHours
   }, 0)
 
   return (
     <div className="dashboard">
       <StatsBar 
-        availableGpus={GPU_INSTANCES.reduce((acc, g) => acc + g.available, 0)}
-        runningJobs={runningJobs}
-        pendingJobs={pendingJobs}
-        completedJobs={completedJobs}
+        availableGpus={gpuOfferings.filter(g => g.available > 0).length}
+        runningJobs={runningInstances}
+        pendingJobs={startingInstances}
+        completedJobs={instances.filter(i => i.status === 'terminated').length}
         totalSaved={totalSaved}
       />
 
       <div className="dashboard-content">
         <div className="dashboard-main">
           <GpuMarketplace 
-            instances={GPU_INSTANCES}
-            selectedInstance={selectedInstance}
-            onSelectInstance={setSelectedInstance}
+            instances={gpuOfferings}
+            selectedInstance={selectedGpu}
+            onSelectInstance={setSelectedGpu}
+            loading={loading}
           />
           
-          <JobQueue 
-            jobs={jobs}
-            onTerminate={handleTerminateJob}
+          <InstanceList 
+            instances={instances}
+            onStop={handleStopInstance}
+            onRestart={handleRestartInstance}
+            onTerminate={handleTerminateInstance}
+            onRefresh={handleRefreshInstance}
+            loading={instancesLoading}
           />
         </div>
 
         <div className="dashboard-sidebar">
-          <JobConfigurator 
-            selectedInstance={selectedInstance}
+          <LaunchConfigurator 
+            selectedGpu={selectedGpu}
+            templates={templates}
             credits={credits}
-            onSubmit={handleSubmitJob}
-            onClear={() => setSelectedInstance(null)}
+            onLaunch={handleLaunchInstance}
+            onClear={() => setSelectedGpu(null)}
+            backendConnected={backendConnected}
           />
         </div>
       </div>
 
-      <TrustFooter />
+{/* TrustFooter removed */}
     </div>
   )
 }

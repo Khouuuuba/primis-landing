@@ -1,0 +1,79 @@
+# .github/workflows/build-moltbot-image.yml
+# Builds and pushes Moltbot Docker image to GHCR
+#
+# To use: Copy to .github/workflows/build-moltbot-image.yml
+
+name: Build Moltbot Docker Image
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      moltbot_version:
+        description: 'Moltbot version/tag to build (e.g., v2026.1.31 or main)'
+        required: true
+        default: 'main'
+  
+  # Weekly rebuild to catch updates
+  schedule:
+    - cron: '0 6 * * 0'  # Sundays at 6 AM UTC
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/moltbot
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout Primis repo
+        uses: actions/checkout@v4
+
+      - name: Clone Moltbot repo
+        run: |
+          git clone https://github.com/moltbot/moltbot.git moltbot-src
+          cd moltbot-src
+          git checkout ${{ github.event.inputs.moltbot_version || 'main' }}
+          echo "MOLTBOT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ env.MOLTBOT_SHA }}
+            type=raw,value=${{ github.event.inputs.moltbot_version || 'main' }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./moltbot-src
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Output image info
+        run: |
+          echo "## Moltbot Image Built!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Registry**: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags**: ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Moltbot SHA**: ${{ env.MOLTBOT_SHA }}" >> $GITHUB_STEP_SUMMARY

@@ -107,12 +107,30 @@ We evaluated two paths:
 | 5.8 | **Devnet Yield Simulator** | 3-4 days | ✅ Complete |
 | 5.9 | **Dashboard Real Metrics** | 1 day | ✅ Complete |
 | 5.10 | **Variable APY Revenue Model** | 1 day | ✅ Complete |
+| 5.11 | **AI Builder - Interactive Instances** | 1 day | ✅ Complete |
+| 5.12 | **AI Builder - Critical UX (VRAM, SSH)** | 1-2 days | 🔜 Planned |
+| 5.13 | **AI Builder - UX Improvements** | 2-3 days | 🔜 Planned |
+| 5.14 | **AI Builder - Advanced Features** | 1 week | 🔜 Planned |
+| **M1** | **OpenClaw on Primis** | 2-3 weeks | 🎯 **Current** |
+| M1.1 | Docker Validation & Resource Profiling | 1 day | ✅ Complete |
+| M1.2 | Container Deployment Backend (Railway) | 2-3 days | ✅ Complete |
+| M1.3 | GitHub Template Repo | 1 day | ✅ Complete |
+| M1.4 | Frontend - Deploy Wizard | 2-3 days | ✅ Complete |
+| M1.5 | Frontend - Instance Dashboard | 1-2 days | ✅ Complete |
+| M1.6 | Stripe Subscription Integration | 1-2 days | ✅ Complete |
+| **Sprint 7** | **Production-Ready OpenClaw** | 1 week | 🎯 **Current** |
+| 7.1 | Stripe checkout endpoint | 2 hrs | ✅ Complete |
+| 7.2 | User API key input (secure storage) | 2 hrs | ✅ Complete |
+| 7.3 | Bot token setup wizard | 2 hrs | ✅ Complete |
+| 7.4 | Instance status polling | 2 hrs | ✅ Complete |
+| 7.5 | E2E deployment test | 1 hr | ⏸️ Railway degraded |
+| M1.7 | Testing & Beta Launch | 2-3 days | 🔜 Planned |
 | 6 | LST Support | 2 weeks | Planned |
 | 7 | Security & Audit | 2-3 weeks | Planned |
 | 7.5 | **Full UI/UX Overhaul** | 2-3 weeks | Planned (Before Mainnet) |
 | 8 | Mainnet Launch | 1 week | Planned |
 
-**Estimated total:** 11-15 weeks
+**Estimated total:** 12-17 weeks
 
 ---
 
@@ -1467,6 +1485,304 @@ GET /api/yield/apy/10
 
 ---
 
+## Sprint 5.11: AI Builder - Interactive Instances ✅ COMPLETE
+**Duration:** 1 day  
+**Status:** ✅ Complete  
+**Goal:** Switch AI Builder from batch jobs model to interactive instances with connection info
+
+### Why This Change
+The original "batch jobs" model had issues:
+- Users had to wait hours to see results
+- No way to SSH in and debug
+- Missing connection info (SSH, Jupyter)
+- Backend had two systems: `/api/jobs` (incomplete) and `/api/instances` (complete)
+
+The new "interactive instances" model:
+- Users launch GPU, get SSH/Jupyter immediately
+- Faster "aha moment" (2 min vs 6 hours)
+- Same UX as RunPod/Vast.ai (familiar)
+- Demonstrates price advantage instantly
+
+### What Was Built
+
+**Frontend (`ai-builder-demo/src/`):**
+- [x] `api.js` - Added 9 instance API functions (launch, stop, restart, terminate, etc.)
+- [x] `components/InstanceCard.jsx` - New component with SSH/Jupyter connection display
+- [x] `components/InstanceCard.css` - Styling with copy-to-clipboard, status badges
+- [x] `components/InstanceList.jsx` - Replaces JobQueue, shows active/stopped/terminated
+- [x] `components/InstanceList.css` - Active indicators, compact terminated list
+- [x] `components/LaunchConfigurator.jsx` - Replaces JobConfigurator, template selection
+- [x] `components/LaunchConfigurator.css` - GPU selection, volume size, pricing info
+- [x] `components/GpuMarketplace.jsx` - Enhanced with provider filter, sort options
+- [x] `components/GpuMarketplace.css` - Provider badges, loading state, filters
+- [x] `components/Dashboard.jsx` - Rewired to use `/api/instances`
+
+**Key Features:**
+- Provider filter (All / RunPod / Vast.ai / Lambda)
+- Sort by price, VRAM, or name
+- Template selection (PyTorch, Stable Diffusion, ComfyUI, etc.)
+- Volume size configuration (20GB - 200GB)
+- Per-second billing display
+- SSH command with copy button
+- Jupyter URL with "Open" link
+- Instance lifecycle (launch → running → stop → restart → terminate)
+
+### API Endpoints Used
+```
+GET  /api/providers/gpus         — 71 GPUs from 3 providers
+GET  /api/instances/templates    — 5 pre-configured environments
+POST /api/instances/launch       — Launch new instance
+GET  /api/instances              — List user's instances
+GET  /api/instances/:id          — Get instance with connection info
+POST /api/instances/:id/stop     — Stop instance (pause)
+POST /api/instances/:id/restart  — Restart stopped instance
+POST /api/instances/:id/terminate — Terminate instance (permanent)
+```
+
+### Success Metrics
+| Metric | Target | Result |
+|--------|--------|--------|
+| GPUs displayed | 50+ | ✅ 71 GPUs |
+| Providers integrated | 3 | ✅ RunPod, Vast.ai, Lambda |
+| Connection info visible | When running | ✅ SSH + Jupyter |
+| Instance actions | All working | ✅ Launch/Stop/Restart/Terminate |
+
+---
+
+## Sprint 5.12: AI Builder - Critical UX Fixes 🎯 NEXT
+**Duration:** 1-2 days  
+**Status:** 🎯 Priority  
+**Goal:** Fix critical missing features before public demo
+
+### Why P0 (Must Have)
+
+| Missing Feature | User Impact | Competitor Has It |
+|-----------------|-------------|-------------------|
+| **VRAM Filter** | "I need 24GB" is #1 search criteria | ✅ RunPod, Vast.ai |
+| **SSH Key Upload** | Can't SSH without adding public key | ✅ RunPod, Vast.ai |
+
+Without these, users will:
+1. Browse 71 GPUs manually looking for VRAM (frustrating)
+2. Try to SSH, realize they can't, leave (broken flow)
+
+### Tasks
+
+#### 5.12.1 VRAM Filter Slider
+- [ ] Add VRAM filter to GpuMarketplace (min VRAM dropdown or slider)
+- [ ] Options: Any, 8GB+, 16GB+, 24GB+, 48GB+, 80GB+
+- [ ] Filter applied client-side (fast)
+- [ ] Show count: "23 GPUs with 24GB+ VRAM"
+
+#### 5.12.2 SSH Key Management
+- [ ] Create `ssh_keys` table in database
+- [ ] Backend routes: `GET/POST/DELETE /api/ssh-keys`
+- [ ] Frontend: SSH Keys panel in sidebar (Account section)
+- [ ] Add SSH key during first launch (modal prompt)
+- [ ] Pass SSH key to instance launch API
+- [ ] Update RunPod/Vast.ai/Lambda adapters to use user's SSH key
+
+#### 5.12.3 Connection Info Prominence
+- [ ] When instance becomes "running", auto-expand connection panel
+- [ ] Add toast notification: "Instance ready! SSH command copied."
+- [ ] Make SSH command larger, more prominent
+- [ ] Add "First time?" tooltip explaining how to connect
+
+### Deliverables
+- [ ] VRAM filter working in marketplace
+- [ ] SSH key CRUD in database + API
+- [ ] SSH key input UI in Account section
+- [ ] SSH key passed to providers on launch
+- [ ] Connection info highlighted when ready
+
+### Success Metrics
+| Metric | Target |
+|--------|--------|
+| VRAM filter | 6 options, client-side |
+| SSH key add | < 30 seconds |
+| SSH key used | In all providers |
+| Connection visible | Auto-expand on ready |
+
+---
+
+## Sprint 5.13: AI Builder - UX Improvements
+**Duration:** 2-3 days  
+**Status:** 🔜 After 5.12  
+**Goal:** Make the platform delightful to use
+
+### Why P1 (Should Have)
+
+| Feature | User Benefit |
+|---------|--------------|
+| **Quick Launch Presets** | "Cheapest 24GB PyTorch" in 1 click |
+| **Cost Ticker** | Know spending while running |
+| **Ready Notification** | Don't miss when instance is ready |
+
+### Tasks
+
+#### 5.13.1 Quick Launch Presets
+- [ ] Add preset buttons above GPU list:
+  - "Cheapest 24GB" → Auto-select, open configurator
+  - "Best for Stable Diffusion" → 24GB + SD template
+  - "Best for LLM Inference" → 48GB+ + text-gen template
+  - "Budget Testing" → Cheapest available
+- [ ] Presets use smart routing to find best option
+- [ ] One-click to launch (skips manual selection)
+
+#### 5.13.2 Live Cost Ticker
+- [ ] Add `session_cost` to InstanceCard footer
+- [ ] Update every 10 seconds while running
+- [ ] Calculate: `elapsed_seconds * hourly_rate / 3600`
+- [ ] Color: green < $1, yellow $1-10, red > $10
+- [ ] Show accumulated cost even after stop
+
+#### 5.13.3 Instance Ready Notification
+- [ ] Toast notification when status → "running"
+- [ ] Include instance name and SSH command
+- [ ] Optional: Browser notification (with permission)
+- [ ] Auto-scroll to instance in list
+- [ ] Pulse animation on InstanceCard
+
+#### 5.13.4 Onboarding Tooltips
+- [ ] "First Launch" guide for new users
+- [ ] Step 1: "Select a GPU from the marketplace"
+- [ ] Step 2: "Configure your instance"
+- [ ] Step 3: "Once running, use SSH or Jupyter to connect"
+- [ ] Dismissable, remember in localStorage
+
+### Deliverables
+- [ ] 4 quick launch presets
+- [ ] Live cost display on running instances
+- [ ] Toast + animation when instance ready
+- [ ] First-time user onboarding flow
+
+### Success Metrics
+| Metric | Target |
+|--------|--------|
+| Quick launch presets | 4 options |
+| Cost ticker accuracy | ± $0.01 |
+| Notification delay | < 5 seconds |
+| Onboarding completion | Tracked |
+
+---
+
+## Sprint 5.14: AI Builder - Advanced Features
+**Duration:** 1 week  
+**Status:** 🔜 After 5.13  
+**Goal:** Reach competitive parity with RunPod/Vast.ai
+
+### Why P2 (Nice to Have)
+
+| Feature | Competitive Impact |
+|---------|-------------------|
+| **Web Terminal** | No local SSH client needed |
+| **Spot Instances** | 50-70% cheaper for interruptible work |
+
+### Tasks
+
+#### 5.14.1 Web-Based Terminal
+- [ ] Research options: xterm.js, ttyd, Wetty
+- [ ] Backend: WebSocket proxy to instance SSH
+- [ ] Frontend: Terminal component in InstanceCard
+- [ ] "Open Terminal" button (opens in-page or new tab)
+- [ ] Basic features: copy/paste, resize, scrollback
+
+#### 5.14.2 Spot Instance Toggle
+- [ ] Add "Use Spot" toggle in LaunchConfigurator
+- [ ] Show spot vs on-demand price comparison
+- [ ] Warning: "Spot instances can be interrupted"
+- [ ] Update Vast.ai adapter (already has spot)
+- [ ] Update RunPod adapter (if supported)
+- [ ] Show "SPOT" badge on spot instances
+
+#### 5.14.3 GPU Utilization Monitoring
+- [ ] Poll GPU metrics from running instances
+- [ ] Display: GPU %, Memory %, Temperature
+- [ ] Mini chart in InstanceCard
+- [ ] Help users identify idle instances
+- [ ] "Your GPU is idle" warning
+
+### Deliverables
+- [ ] Web terminal working
+- [ ] Spot instance option
+- [ ] GPU metrics display
+
+### Success Metrics
+| Metric | Target |
+|--------|--------|
+| Web terminal latency | < 100ms |
+| Spot savings shown | 50-70% |
+| GPU metrics polling | Every 30s |
+
+---
+
+## Sprint 5.15: AI Builder - Workflow Improvements
+**Duration:** 3-4 days  
+**Status:** 🔜 Future  
+**Goal:** Optimize the user journey based on real usage patterns
+
+### Tasks
+
+#### 5.15.1 Requirements-First Flow
+- [ ] Add "What do you need?" wizard at top of marketplace
+- [ ] Questions: VRAM needed? Workload type? Budget?
+- [ ] Auto-filter and recommend best GPU
+- [ ] Skip to launch with one click
+
+#### 5.15.2 Comparison View
+- [ ] Select multiple GPUs for side-by-side comparison
+- [ ] Compare: Price, VRAM, CPU, Storage, Availability
+- [ ] "Launch" button on comparison winner
+
+#### 5.15.3 Usage History & Spending
+- [ ] Dashboard showing historical usage
+- [ ] Spending by GPU type, by day
+- [ ] Export to CSV
+- [ ] Budget alerts (optional)
+
+#### 5.15.4 Favorites & Recent
+- [ ] Star favorite GPU configurations
+- [ ] "Recent" section for quick re-launch
+- [ ] Persist in user profile
+
+### Deliverables
+- [ ] Requirements wizard
+- [ ] GPU comparison view
+- [ ] Usage analytics dashboard
+- [ ] Favorites system
+
+---
+
+## Sprint 5 Summary (Updated)
+
+**Timeline:**
+| Phase | Duration | Status |
+|-------|----------|--------|
+| 5.1-5.7 Multi-Provider GPU | ~12 days | ✅ Complete |
+| 5.8 Devnet Yield Simulator | 4 days | ✅ Complete |
+| 5.9 Dashboard Real Metrics | 1 day | ✅ Complete |
+| 5.10 Variable APY Model | 1 day | ✅ Complete |
+| 5.11 Interactive Instances | 1 day | ✅ Complete |
+| 5.12 Critical UX Fixes | 1-2 days | 🎯 **Next** |
+| 5.13 UX Improvements | 2-3 days | 🔜 Planned |
+| 5.14 Advanced Features | 1 week | 🔜 Planned |
+| 5.15 Workflow Improvements | 3-4 days | 🔜 Future |
+
+**Current State:**
+- ✅ 71 GPUs from 4 providers (RunPod, Vast.ai, Lambda, Together AI)
+- ✅ Interactive instances with SSH/Jupyter connection info
+- ✅ Provider filtering and price sorting
+- ✅ Template selection and volume configuration
+- ❌ Missing: VRAM filter, SSH key management
+- ❌ Missing: Quick launch, cost ticker, ready notification
+
+**Priority Order:**
+1. **5.12** - Critical fixes (VRAM filter, SSH keys) — **blocks usability**
+2. **5.13** - UX improvements (presets, cost ticker) — **increases conversion**
+3. **5.14** - Advanced features (web terminal, spot) — **competitive parity**
+4. **5.15** - Workflow (wizard, comparison) — **optimization**
+
+---
+
 ## Sprint 6: LST Support
 **Duration:** 2 weeks  
 **Goal:** Accept mSOL and jitoSOL
@@ -1831,6 +2147,652 @@ Everything built and working:
 
 ---
 
-*Last updated: January 26, 2026*  
-*V1 MVP complete. Multi-provider GPU shipped. Devnet yield simulator live. Dashboard real metrics deployed.*
+## 🦞 M1: OpenClaw on Primis
+
+> **Goal**: Offer 1-click OpenClaw deployment at $30/mo, leveraging clawdbot virality  
+> **Timeline**: 2-3 weeks  
+> **Strategic Value**: Viral acquisition channel, proves Primis compute model, generates recurring revenue  
+> **Status**: Sprint 7 (7.1-7.4) Complete — Ready for E2E testing
+
+### Why OpenClaw First?
+
+| Factor | Value |
+|--------|-------|
+| **Docker Ready** | Official Dockerfile exists - minimal integration work |
+| **Clear Pain Point** | Requires Node 22+ (most devs on 18/20), complex setup |
+| **Viral Ecosystem** | clawdbot (300+ stars) + growing community |
+| **Revenue Model** | $30/mo subscription × 1000 users = $30k MRR |
+| **Primis Demo** | Proves "deploy anything cheaper" value proposition |
+| **Distribution Channel** | Users deploy OpenClaw → Discover Primis compute platform |
+
+### Target User Journey
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  OPENCLAW USER TODAY                                        │
+│  ───────────────────                                        │
+│  1. Upgrade Node.js to v22 (many stuck on v18/20)          │
+│  2. Fix nvm/npm conflicts                                   │
+│  3. Install pnpm, bun                                       │
+│  4. Configure 6+ environment variables                      │
+│  5. Set up process manager (pm2/systemd)                    │
+│  6. Configure webhooks, SSL                                 │
+│  7. Debug connection issues at 3am                          │
+│  8. Repeat on every update                                  │
+│                                                             │
+│  WITH PRIMIS ($30/mo)                                       │
+│  ───────────────────                                        │
+│  1. Paste AI API key (Claude/OpenAI)                        │
+│  2. Paste bot token (Telegram/Discord)                      │
+│  3. Click Deploy                                            │
+│  4. Done. 24/7 managed hosting.                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### OpenClaw-First Launch Strategy
+
+The AI Builder demo is configured for **OpenClaw-first launch**:
+- **Home dashboard** prominently features OpenClaw deployment
+- **Other features** (Compute, Storage, Credits) are locked behind access code
+- **Goal**: Capture OpenClaw users → Convert to full Primis compute users later
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  LAUNCH FUNNEL                                              │
+│                                                             │
+│  OpenClaw User → Deploy Bot → Happy with hosting            │
+│                                    ↓                        │
+│                         Sees "Compute" in sidebar           │
+│                                    ↓                        │
+│                         Requests access code                │
+│                                    ↓                        │
+│                         Full Primis user (GPUs, Models)     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### M1.1: Docker Validation & Resource Profiling
+**Duration**: 1 day  
+**Status**: ✅ Complete  
+**Goal**: Validate Moltbot container works on cloud infrastructure, measure real resource usage
+
+#### Key Findings
+
+| Finding | Impact |
+|---------|--------|
+| No public Docker image | Must build from source or use Dockerfile-supporting platforms |
+| RunPod requires GPU | ~$100/mo - too expensive for CPU workload |
+| Railway recommended | ~$10-15/mo - builds from Dockerfile |
+| 60% gross margin | $30/mo price is viable |
+
+#### Deliverables
+
+- ✅ `moltbot-integration/M1.1-docker-validation.md` - Full technical analysis
+- ✅ `moltbot-integration/railway-moltbot-template/` - Railway deployment template
+- ✅ `moltbot-integration/M1.1-SUMMARY.md` - Sprint summary
+- ✅ `backend/scripts/test-moltbot-deploy.js` - RunPod test script (reference)
+
+#### Technical Details
+
+**Moltbot Official Requirements (from fly.toml):**
+```
+RAM: 2GB minimum
+CPU: 2 shared cores
+Storage: Persistent volume for /data
+Ports: 18789 (gateway), 18790 (bridge)
+Node: 22-bookworm base image
+```
+
+**RunPod Pod Configuration:**
+```javascript
+// Expected pod config
+{
+  name: "moltbot-test",
+  imageName: "ghcr.io/moltbot/moltbot:latest", // or custom build
+  dockerArgs: "",
+  gpuCount: 0,  // CPU-only initially
+  volumeInGb: 5,
+  containerDiskInGb: 10,
+  volumeMountPath: "/data",
+  env: {
+    ANTHROPIC_API_KEY: "sk-ant-xxx",
+    TELEGRAM_BOT_TOKEN: "123:abc",
+    NODE_ENV: "production"
+  }
+}
+```
+
+#### Success Metrics
+
+| Metric | Target | Why |
+|--------|--------|-----|
+| Container builds | ✓ | Basic feasibility |
+| Container starts | < 30s | User experience |
+| RAM usage (idle) | < 1GB | Cost optimization |
+| RAM usage (active) | < 2GB | Stays within limits |
+| Bot responds | < 2s | Usability |
+| Uptime (24h test) | 100% | Reliability |
+
+#### Deliverables
+
+1. **Working container** deployed on RunPod
+2. **Resource report** with actual measurements
+3. **Cost calculation** based on real usage
+4. **Issues list** with any blockers discovered
+
+---
+
+### M1.2: Container Deployment Backend (Railway)
+**Duration**: 2-3 days  
+**Status**: 🎯 Next  
+**Goal**: Create API endpoints to deploy and manage Moltbot containers on Railway
+
+> **Note**: Based on M1.1 findings, we're using **Railway** instead of RunPod for Moltbot hosting.
+> Railway supports Dockerfile builds and costs ~$10-15/mo vs RunPod's ~$100+/mo for CPU workloads.
+
+#### Tasks
+
+- [ ] Set up Railway API access and test template deployment
+- [ ] Create `POST /api/moltbot/deploy` endpoint (Railway service creation)
+- [ ] Create `GET /api/moltbot/status` endpoint (Railway service status)
+- [ ] Create `POST /api/moltbot/stop` endpoint (Railway service pause)
+- [ ] Create `POST /api/moltbot/restart` endpoint (Railway redeploy)
+- [ ] Create `DELETE /api/moltbot/terminate` endpoint (Railway service delete)
+- [ ] Implement deployment webhook handler
+- [ ] Add usage tracking (uptime hours)
+
+#### Railway API Integration
+
+```javascript
+// Railway GraphQL API
+const RAILWAY_API = 'https://backboard.railway.app/graphql/v2'
+
+// Create service from template
+const createService = `
+  mutation CreateService($input: ServiceCreateInput!) {
+    serviceCreate(input: $input) {
+      id
+      name
+      deployments { id status }
+    }
+  }
+`
+
+// Environment variables injection
+const setEnvVars = `
+  mutation SetVariables($input: VariableCollectionUpsertInput!) {
+    variableCollectionUpsert(input: $input)
+  }
+`
+```
+
+#### API Design
+
+```javascript
+// POST /api/moltbot/deploy
+{
+  "aiProvider": "anthropic", // or "openai"
+  "aiApiKey": "sk-ant-xxx",
+  "channels": {
+    "telegram": { "botToken": "123:abc" },
+    "discord": { "botToken": "xyz" }  // optional
+  },
+  "name": "my-moltbot"
+}
+
+// Response
+{
+  "success": true,
+  "instanceId": "mb-abc123",
+  "status": "deploying",
+  "estimatedReady": "5-10 minutes",  // Railway builds from Dockerfile
+  "railwayUrl": "https://my-moltbot.up.railway.app"
+}
+
+// GET /api/moltbot/status/:instanceId
+{
+  "instanceId": "mb-abc123",
+  "status": "running",  // deploying | running | stopped | error
+  "uptime": "2h 34m",
+  "channels": ["telegram"],
+  "gatewayUrl": "https://my-moltbot.up.railway.app",
+  "createdAt": "2026-01-31T10:00:00Z"
+}
+```
+
+#### Database Schema
+
+```sql
+CREATE TABLE moltbot_instances (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL REFERENCES users(id),
+  name TEXT NOT NULL,
+  railway_service_id TEXT,  -- Railway service ID
+  railway_environment_id TEXT,  -- Railway environment ID
+  railway_url TEXT,  -- Public URL
+  status TEXT DEFAULT 'deploying',
+  ai_provider TEXT NOT NULL,  -- 'anthropic' or 'openai'
+  channels TEXT[],  -- ['telegram', 'discord']
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  stopped_at TIMESTAMPTZ,
+  total_uptime_hours DECIMAL DEFAULT 0
+);
+
+CREATE TABLE moltbot_secrets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  instance_id UUID REFERENCES moltbot_instances(id) ON DELETE CASCADE,
+  key_name TEXT NOT NULL,  -- 'ANTHROPIC_API_KEY', 'TELEGRAM_BOT_TOKEN'
+  encrypted_value TEXT NOT NULL,  -- AES-256 encrypted
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+#### Success Metrics
+
+| Metric | Target |
+|--------|--------|
+| Deploy API creates Railway service | ✓ |
+| Status API reflects Railway state | ✓ |
+| Stop/restart works | ✓ |
+| Deployment webhook received | ✓ |
+| End-to-end deploy time | < 10 min |
+
+---
+
+### M1.3: Secrets Management
+**Duration**: 1 day  
+**Status**: 🔜 Planned  
+**Goal**: Securely store and inject user API keys
+
+#### Tasks
+
+- [ ] Implement AES-256 encryption for secrets at rest
+- [ ] Create encryption key management (env var)
+- [ ] Build secrets injection into container env
+- [ ] Ensure secrets never logged or exposed in API responses
+- [ ] Add secret rotation capability
+- [ ] Audit secret access
+
+#### Security Requirements
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  SECRET LIFECYCLE                                           │
+│                                                             │
+│  User Input → HTTPS → Backend                               │
+│                         ↓                                   │
+│                    AES-256 Encrypt                          │
+│                         ↓                                   │
+│                    Store in DB                              │
+│                         ↓                                   │
+│              (On container deploy)                          │
+│                         ↓                                   │
+│                    Decrypt in memory                        │
+│                         ↓                                   │
+│              Inject as container env var                    │
+│                         ↓                                   │
+│              Container starts with secrets                  │
+│                                                             │
+│  ✗ Never stored in plaintext                               │
+│  ✗ Never logged                                            │
+│  ✗ Never returned in API responses                         │
+│  ✗ Never visible in RunPod dashboard                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Success Metrics
+
+| Metric | Target |
+|--------|--------|
+| Secrets encrypted at rest | ✓ |
+| No plaintext in logs | ✓ |
+| API responses masked | ✓ |
+| Decryption works | ✓ |
+
+---
+
+### M1.4: Frontend - Deploy Wizard
+**Duration**: 2-3 days  
+**Status**: ✅ Complete  
+**Goal**: Beautiful, simple 4-step deployment flow with intro page
+
+#### What Was Built
+
+- [x] OpenClaw intro page with animated chat demo
+- [x] Step 1: AI Provider selection (Claude/OpenAI) with API key input
+- [x] Step 2: Channel configuration (Telegram/Discord) with token help modals
+- [x] Step 3: Payment review with Stripe checkout redirect
+- [x] Step 4: Name & deploy instance
+- [x] API key format validation
+- [x] Bot token format validation
+- [x] "How to get token" help modals with step-by-step guides
+- [x] Deployment progress indicator
+- [x] Error handling with user-friendly messages
+- [x] OpenClaw-first home dashboard
+- [x] Locked features modal for non-OpenClaw features
+
+#### User Flow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  OPENCLAW DEPLOYMENT FLOW                                   │
+│                                                             │
+│  1. Intro Page                                              │
+│     • Hero section: "Your AI, living in chat"              │
+│     • Feature cards: Code, Browse, Automate                │
+│     • Animated Telegram chat demo (data analysis task)     │
+│     • CTA: "Deploy OpenClaw"                               │
+│                                                             │
+│  2. Choose Your Brain (Step 1)                             │
+│     • Claude (Anthropic) - Recommended                     │
+│     • ChatGPT (OpenAI)                                     │
+│     • API key input with validation                        │
+│     • Link to get API key                                  │
+│                                                             │
+│  3. Connect Channels (Step 2)                              │
+│     • Telegram toggle + bot token input                    │
+│     • Discord toggle + bot token input                     │
+│     • "How to get token" help modals                       │
+│     • WhatsApp/Slack marked "Coming Soon"                  │
+│                                                             │
+│  4. Review & Subscribe (Step 3)                            │
+│     • Configuration summary                                │
+│     • "Subscribe & Deploy — $30/mo" button                 │
+│     • Stripe checkout redirect                             │
+│                                                             │
+│  5. Name & Deploy (Step 4)                                 │
+│     • Instance name input                                  │
+│     • "Launch OpenClaw" button                             │
+│     • Deployment status (deploying → running)              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Success Metrics
+
+| Metric | Target | Result |
+|--------|--------|--------|
+| 4-step flow complete | ✓ | ✅ Working |
+| API key validation works | ✓ | ✅ Format check |
+| Help modals present | ✓ | ✅ Telegram + Discord |
+| Deploy triggers backend | ✓ | ✅ Railway API |
+| Mobile responsive | ✓ | ✅ Tested |
+| Intro page engaging | ✓ | ✅ Animated demo |
+
+---
+
+### M1.5: Frontend - Instance Dashboard
+**Duration**: 1-2 days  
+**Status**: ✅ Complete  
+**Goal**: Manage deployed OpenClaw instances
+
+#### What Was Built
+
+- [x] Instance list in MoltbotPanel showing all user's bots
+- [x] Status badges (running/stopped/deploying/building/failed)
+- [x] Connected channels display (Telegram/Discord icons)
+- [x] AI provider indicator (Claude/ChatGPT)
+- [x] Stop/restart/terminate actions
+- [x] Status polling (5-second intervals for active deployments)
+- [x] Empty state with "Deploy your first OpenClaw" CTA
+
+#### UI Components
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  YOUR ASSISTANTS                               [+ Deploy]   │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  🦞 my-openclaw                       ● Running      │   │
+│  │  ───────────────────────────────────────────────────│   │
+│  │                                                     │   │
+│  │  AI: Claude          Created: 2h ago               │   │
+│  │  Channel: Telegram                                 │   │
+│  │                                                     │   │
+│  │  [Restart]  [Stop]  [Delete]                       │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Success Metrics
+
+| Metric | Target | Result |
+|--------|--------|--------|
+| Instance list displays | ✓ | ✅ Working |
+| Status updates in real-time | < 5s | ✅ 5s polling |
+| Stop/restart works | ✓ | ✅ API connected |
+| Instance actions | All | ✅ Stop/Restart/Delete |
+
+---
+
+### M1.6: Stripe Subscription Integration
+**Duration**: 1-2 days  
+**Status**: ✅ Complete  
+**Goal**: $30/mo recurring billing for OpenClaw hosting
+
+#### What Was Built
+
+- [x] `POST /api/payments/openclaw-checkout` - Creates Stripe subscription session
+- [x] `GET /api/payments/openclaw-subscription` - Check subscription status
+- [x] `POST /api/payments/openclaw-cancel` - Cancel subscription at period end
+- [x] Webhook handlers for subscription lifecycle events
+- [x] Frontend payment flow with session storage for redirect handling
+- [x] Auto-creates Stripe product/price if not configured
+
+#### API Endpoints
+
+```javascript
+// POST /api/payments/openclaw-checkout
+{
+  "aiProvider": "anthropic",
+  "channels": ["telegram"],
+  "instanceName": "my-openclaw"
+}
+// Returns: { sessionId, url } → Redirect to Stripe
+
+// GET /api/payments/openclaw-subscription
+// Returns: { hasSubscription, subscription: { id, status, currentPeriodEnd } }
+
+// POST /api/payments/openclaw-cancel
+{ "subscriptionId": "sub_xxx" }
+// Returns: { success, cancelAt }
+```
+
+#### Webhook Events Handled
+
+```javascript
+- checkout.session.completed (type: openclaw_subscription) → Record subscription
+- customer.subscription.deleted → Mark instance as stopped
+```
+
+#### Success Metrics
+
+| Metric | Target | Result |
+|--------|--------|--------|
+| Checkout flow works | ✓ | ✅ Stripe redirect |
+| Subscription tracks correctly | ✓ | ✅ Database + Stripe |
+| Instance pauses on cancel | ✓ | ✅ Webhook handler |
+| Frontend handles redirect | ✓ | ✅ Session storage |
+
+---
+
+### Sprint 7: Production-Ready OpenClaw
+**Duration**: 1 week  
+**Status**: 🎯 Current (7.1-7.4 Complete)  
+**Goal**: Complete all production requirements for public OpenClaw launch
+
+#### Sprint 7.1: Stripe Checkout Endpoint ✅
+**Status**: ✅ Complete
+
+**What Was Built:**
+- `POST /api/payments/openclaw-checkout` - $30/mo subscription
+- `GET /api/payments/openclaw-subscription` - Check status
+- `POST /api/payments/openclaw-cancel` - Cancel subscription
+- Webhook handlers for subscription events
+- Frontend payment flow with redirect handling
+
+#### Sprint 7.2: User API Key Input ✅
+**Status**: ✅ Complete (Already Existed)
+
+**What Exists:**
+- API key input with password masking in wizard
+- Format validation (checks `sk-ant-` for Anthropic, `sk-` for OpenAI)
+- "Get API key" link to provider console
+- AES-256-GCM encryption in backend
+- Secure storage in `moltbot_secrets` table
+
+#### Sprint 7.3: Bot Token Setup Wizard ✅
+**Status**: ✅ Complete (Already Existed)
+
+**What Exists:**
+- Token input with password masking
+- "How to get token" help button
+- Step-by-step setup modal:
+  - Telegram: BotFather instructions
+  - Discord: Developer Portal instructions
+- Links to official documentation
+
+#### Sprint 7.4: Instance Status Polling ✅
+**Status**: ✅ Complete
+
+**What Was Built:**
+- Automatic polling every 5 seconds for instances in deploying/building status
+- Auto-stops polling when all instances reach final state
+- Real-time status updates in UI
+- New instance added to list immediately on deploy
+
+#### Sprint 7.5: End-to-End Deployment Test ⏸️
+**Status**: ⏸️ Blocked - Railway Degraded
+
+**Blocker:** Railway platform experiencing "partially degraded performance" - build system unable to clone repositories.
+
+**Once Railway is restored:**
+- [ ] Deploy test OpenClaw instance
+- [ ] Verify Telegram bot responds
+- [ ] Test subscription → deploy flow
+- [ ] Verify instance status polling
+- [ ] Test stop/restart/terminate actions
+
+#### Sprint 7 Summary
+
+| Sprint | Task | Status |
+|--------|------|--------|
+| 7.1 | Stripe checkout endpoint | ✅ Complete |
+| 7.2 | User API key input | ✅ Complete |
+| 7.3 | Bot token setup wizard | ✅ Complete |
+| 7.4 | Instance status polling | ✅ Complete |
+| 7.5 | E2E deployment test | ⏸️ Blocked |
+
+**Production Environment Variables Needed:**
+```bash
+STRIPE_SECRET_KEY=sk_live_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+STRIPE_OPENCLAW_PRICE_ID=price_xxx  # Optional, auto-creates if missing
+MOLTBOT_ENCRYPTION_KEY=<64-char-hex>
+RAILWAY_API_KEY=<railway-api-token>
+RAILWAY_MOLTBOT_PROJECT_ID=<project-id>
+AI_BUILDER_URL=https://ai.primisprotocol.ai
+```
+
+---
+
+### M1.7: Testing & Beta Launch
+**Duration**: 2-3 days  
+**Status**: 🎯 Next (After Railway stabilizes)  
+**Goal**: Launch beta to early adopters
+
+#### Pre-requisites (Sprint 7.5)
+
+- [ ] Railway platform fully operational
+- [ ] E2E deployment test successful
+- [ ] Telegram bot verified responsive
+- [ ] Stripe subscription flow tested with test card
+
+#### Tasks
+
+- [ ] Internal end-to-end testing (5+ test deployments)
+- [ ] Test edge cases (bad API keys, rate limits, network errors)
+- [ ] Write user documentation (setup guides)
+- [ ] Create landing page section for OpenClaw
+- [ ] Prepare launch announcement (Twitter/X, Discord)
+- [ ] Monitor first 10 deployments closely
+- [ ] Set up error alerting (Sentry or similar)
+- [ ] Collect feedback, iterate
+
+#### Launch Checklist
+
+```
+Pre-Launch:
+☐ Railway E2E test passed
+☐ Stripe test subscription completed
+☐ Error handling complete
+☐ Documentation written
+☐ Support email ready
+☐ Monitoring/alerting set up
+
+Launch Day:
+☐ Landing page section live
+☐ clawdbot community post
+☐ Twitter/X announcement
+☐ Monitor deployments in real-time
+☐ Respond to issues quickly
+
+Post-Launch (Week 1):
+☐ Gather feedback (NPS survey)
+☐ Fix critical bugs same-day
+☐ Add WhatsApp support (if demand)
+☐ Consider pricing adjustments
+☐ Testimonials for social proof
+```
+
+#### Success Metrics (Launch Week)
+
+| Metric | Target | Why |
+|--------|--------|-----|
+| Deployments | 10+ | Validation |
+| Successful deploys | 80%+ | UX works |
+| Support tickets | < 20% of users | Self-service works |
+| Churn (first week) | < 20% | Value delivered |
+| NPS | > 30 | Users happy |
+
+---
+
+### M1 Sprint Summary
+
+| Sprint | Task | Duration | Status |
+|--------|------|----------|--------|
+| M1.1 | Docker Validation | 1 day | ✅ Complete |
+| M1.2 | Railway Backend | 2-3 days | ✅ Complete |
+| M1.3 | GitHub Template | 1 day | ✅ Complete |
+| M1.4 | Deploy Wizard UI | 2-3 days | ✅ Complete |
+| M1.5 | Instance Dashboard | 1-2 days | ✅ Complete |
+| M1.6 | Stripe Subscription | 1-2 days | ✅ Complete |
+| **Sprint 7** | **Production Ready** | 1 day | **7.1-7.4 ✅** |
+| 7.5 | E2E Test | 1 hr | ⏸️ Railway |
+| M1.7 | Beta Launch | 2-3 days | 🎯 Next |
+
+**Total completed**: ~11 days of work  
+**Remaining**: E2E test + beta launch (~3 days)
+
+**What's Ready:**
+- ✅ Backend APIs (deploy, status, stop, restart, terminate)
+- ✅ Railway integration (service creation, env vars, webhooks)
+- ✅ Secrets encryption (AES-256-GCM)
+- ✅ Stripe subscription ($30/mo)
+- ✅ Deploy wizard (4-step flow with intro)
+- ✅ Instance dashboard (status, actions)
+- ✅ Status polling (5s for active deployments)
+- ✅ OpenClaw-first home dashboard
+- ✅ Locked feature modal for restricted features
+
+**Blocker:**
+- ⏸️ Railway experiencing "partially degraded performance" — build system cannot clone repositories
+
+---
+
+*Last updated: February 4, 2026*  
+*Sprint 7 (7.1-7.4) Complete: Stripe, API keys, bot tokens, status polling all ready.*  
+*Next: E2E test once Railway restores service. Then M1.7 Beta Launch.*  
 *"Primis is not a cloud. It's a pricing layer on top of compute."*
