@@ -416,6 +416,13 @@ async function deployMoltbot({ name, envVars }) {
       ANTHROPIC_SMALL_MODEL: 'claude-sonnet-4-20250514',
       ANTHROPIC_LARGE_MODEL: 'claude-sonnet-4-20250514',
       
+      // Route through Primis API proxy for centralized rate limiting (Sprint R2)
+      // If the bot framework supports custom base URL, this enables the proxy
+      ...(process.env.API_BASE_URL ? {
+        ANTHROPIC_BASE_URL: `${process.env.API_BASE_URL}/api/anthropic-proxy`,
+        ANTHROPIC_API_BASE_URL: `${process.env.API_BASE_URL}/api/anthropic-proxy`
+      } : {}),
+      
       // User-provided variables
       ...envVars
     }

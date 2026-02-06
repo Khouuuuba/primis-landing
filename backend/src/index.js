@@ -177,6 +177,7 @@ import providersRoutes from './routes/providers.js'
 import moltbotRoutes from './routes/moltbot.js'
 import bobRoutes from './routes/bob.js'
 import skillsRoutes from './routes/skills.js'
+import anthropicProxyRoutes from './routes/anthropic-proxy.js'
 import { startScheduler, stopScheduler, getSchedulerStatus, triggerDistribution, getVaultState } from './yield-scheduler.js'
 
 app.use('/api/auth', authRoutes)
@@ -195,6 +196,7 @@ app.use('/api/providers', providersRoutes)
 app.use('/api/moltbot', moltbotRoutes)
 app.use('/api/bob', bobRoutes)
 app.use('/api/skills', skillsRoutes)
+app.use('/api/anthropic-proxy', anthropicProxyRoutes)
 
 // =====================
 // SCHEDULER ENDPOINTS
