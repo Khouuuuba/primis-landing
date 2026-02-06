@@ -407,6 +407,15 @@ async function deployMoltbot({ name, envVars }) {
       CLAWDBOT_STATE_DIR: '/data',
       CLAWDBOT_PREFER_PNPM: '1',
       NODE_OPTIONS: '--max-old-space-size=1536',
+      
+      // Model override: Use Sonnet instead of Opus to avoid rate limits
+      // Opus has only 30k input tokens/min; Sonnet has 80k input tokens/min
+      // These env vars are recognized by the Clawdbot/Moltbot framework
+      SMALL_ANTHROPIC_MODEL: 'claude-sonnet-4-20250514',
+      LARGE_ANTHROPIC_MODEL: 'claude-sonnet-4-20250514',
+      ANTHROPIC_SMALL_MODEL: 'claude-sonnet-4-20250514',
+      ANTHROPIC_LARGE_MODEL: 'claude-sonnet-4-20250514',
+      
       // User-provided variables
       ...envVars
     }

@@ -278,6 +278,16 @@ async function deployToRailway(instanceId, name, aiProvider, channels) {
       console.log('Injecting BRAVE_API_KEY for web search')
     }
 
+    // Override model to avoid Opus rate limits (30k tokens/min)
+    // Sonnet has 80k tokens/min and is better suited for chat workloads
+    if (aiProvider === 'anthropic') {
+      envVars.SMALL_ANTHROPIC_MODEL = 'claude-sonnet-4-20250514'
+      envVars.LARGE_ANTHROPIC_MODEL = 'claude-sonnet-4-20250514'
+      envVars.ANTHROPIC_SMALL_MODEL = 'claude-sonnet-4-20250514'
+      envVars.ANTHROPIC_LARGE_MODEL = 'claude-sonnet-4-20250514'
+      console.log('Model override: Using claude-sonnet-4 instead of opus (rate limit mitigation)')
+    }
+
     // Deploy to Railway
     const deployment = await RailwayProvider.deployMoltbot({
       name,
@@ -515,6 +525,16 @@ router.post('/instances/:id/restart', requireAuth, async (req, res) => {
       console.log('Restart: Injecting BRAVE_API_KEY for web search')
     }
 
+    // Override model to avoid Opus rate limits (30k tokens/min)
+    // Sonnet has 80k tokens/min - prevents 429 errors on Telegram bots
+    if (instance.ai_provider === 'anthropic') {
+      updatedVars.SMALL_ANTHROPIC_MODEL = 'claude-sonnet-4-20250514'
+      updatedVars.LARGE_ANTHROPIC_MODEL = 'claude-sonnet-4-20250514'
+      updatedVars.ANTHROPIC_SMALL_MODEL = 'claude-sonnet-4-20250514'
+      updatedVars.ANTHROPIC_LARGE_MODEL = 'claude-sonnet-4-20250514'
+      console.log('Restart: Model override to claude-sonnet-4 (rate limit mitigation)')
+    }
+
     // Update Railway service environment variables
     await RailwayProvider.setServiceVariables({
       projectId: instance.railway_project_id,
@@ -633,6 +653,82 @@ router.get('/health', async (req, res) => {
       provider: 'railway',
       error: error.message
     })
+  }
+})
+
+/**
+ * POST /api/moltbot/admin/fix-rate-limits
+ * Emergency fix: Push model override to ALL running Anthropic instances
+ * This switches from Opus (30k tokens/min) to Sonnet (80k tokens/min)
+ * 
+ * Must be called once to fix existing instances. New deploys/restarts
+ * automatically get the fix.
+ */
+router.post('/admin/fix-rate-limits', async (req, res) => {
+  const adminKey = req.headers['x-admin-key']
+  if (adminKey !== process.env.ADMIN_SECRET_KEY) {
+    return res.status(403).json({ error: 'Forbidden' })
+  }
+
+  try {
+    // Find all running Anthropic instances
+    const result = await query(
+      `SELECT id, name, ai_provider, railway_service_id, railway_environment_id, railway_project_id
+       FROM moltbot_instances 
+       WHERE status IN ('running', 'building', 'deploying') 
+         AND ai_provider = 'anthropic'
+         AND railway_service_id IS NOT NULL`
+    )
+
+    const instances = result.rows
+    console.log(`[fix-rate-limits] Found ${instances.length} running Anthropic instances`)
+
+    const results = []
+    for (const instance of instances) {
+      try {
+        // Push model override env vars
+        await RailwayProvider.setServiceVariables({
+          projectId: instance.railway_project_id,
+          environmentId: instance.railway_environment_id,
+          serviceId: instance.railway_service_id,
+          variables: {
+            SMALL_ANTHROPIC_MODEL: 'claude-sonnet-4-20250514',
+            LARGE_ANTHROPIC_MODEL: 'claude-sonnet-4-20250514',
+            ANTHROPIC_SMALL_MODEL: 'claude-sonnet-4-20250514',
+            ANTHROPIC_LARGE_MODEL: 'claude-sonnet-4-20250514'
+          }
+        })
+
+        // Trigger redeploy so the new vars take effect
+        await RailwayProvider.redeployService(
+          instance.railway_service_id,
+          instance.railway_environment_id
+        )
+
+        // Log the fix
+        await query(
+          `INSERT INTO moltbot_deployment_logs (instance_id, event_type, message)
+           VALUES ($1, 'config', 'Rate limit fix: Switched model from opus to sonnet')`,
+          [instance.id]
+        )
+
+        results.push({ id: instance.id, name: instance.name, status: 'fixed' })
+        console.log(`[fix-rate-limits] Fixed instance: ${instance.name} (${instance.id})`)
+      } catch (err) {
+        results.push({ id: instance.id, name: instance.name, status: 'error', error: err.message })
+        console.error(`[fix-rate-limits] Failed to fix ${instance.name}:`, err.message)
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Processed ${instances.length} instances`,
+      fix: 'Switched from claude-opus-4-5 (30k tokens/min) to claude-sonnet-4 (80k tokens/min)',
+      results
+    })
+  } catch (error) {
+    console.error('Fix rate limits error:', error)
+    res.status(500).json({ error: error.message })
   }
 })
 
