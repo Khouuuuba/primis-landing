@@ -169,15 +169,18 @@ async function handleOpenClawSubscription(session) {
   console.log(`OpenClaw subscription activated for user ${userId}`)
 
   try {
-    // Update the instance to mark as paid and ready for deploy
+    // Update the most recent pending instance to mark as paid and ready for deploy
     await query(
       `UPDATE moltbot_instances 
        SET subscription_id = $1,
            subscription_status = 'active',
            updated_at = NOW()
-       WHERE user_id = $2 AND status = 'pending'
-       ORDER BY created_at DESC
-       LIMIT 1`,
+       WHERE id = (
+         SELECT id FROM moltbot_instances
+         WHERE user_id = $2 AND status = 'pending'
+         ORDER BY created_at DESC
+         LIMIT 1
+       )`,
       [subscriptionId, userId]
     )
 
