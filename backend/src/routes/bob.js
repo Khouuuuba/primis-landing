@@ -10,13 +10,22 @@
 
 import { Router } from 'express'
 import Anthropic from '@anthropic-ai/sdk'
+import { 
+  createRateLimitedClient, 
+  getRateLimitStatus, 
+  isRateLimitError,
+  estimateTokenCount
+} from '../utils/anthropic-rate-limiter.js'
 
 const router = Router()
 
-// Initialize Anthropic client
-const anthropic = process.env.ANTHROPIC_API_KEY 
+// Initialize Anthropic client with rate limiting
+const rawAnthropicClient = process.env.ANTHROPIC_API_KEY 
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null
+
+// Wrap with rate limiter for automatic retry/backoff on 429 errors
+const anthropic = createRateLimitedClient(rawAnthropicClient)
 
 // App type definitions
 const APP_TYPES = {
@@ -95,7 +104,9 @@ router.post('/classify', async (req, res) => {
           })
         }
       } catch (aiError) {
-        console.error('AI classification failed, falling back to keywords:', aiError.message)
+        // On rate limit errors, fall back to keyword classification gracefully
+        const errorType = isRateLimitError(aiError) ? 'Rate limited' : 'Error'
+        console.error(`AI classification failed (${errorType}), falling back to keywords:`, aiError.message)
       }
     }
 
@@ -136,7 +147,7 @@ router.post('/generate', async (req, res) => {
 
     console.log(`Generating ${spec.type} app:`, spec)
 
-    // Generate code with Claude
+    // Generate code with Claude (rate limiter handles retries automatically)
     const generatedCode = await generateAppCode(spec)
     
     res.json({
@@ -147,6 +158,17 @@ router.post('/generate', async (req, res) => {
 
   } catch (error) {
     console.error('Generation error:', error)
+    
+    // Return a user-friendly error for rate limit issues
+    if (isRateLimitError(error)) {
+      return res.status(429).json({
+        success: false,
+        error: 'AI service is temporarily busy. Please try again in a minute.',
+        retryAfter: 60,
+        code: 'RATE_LIMITED'
+      })
+    }
+    
     res.status(500).json({ success: false, error: error.message || 'Code generation failed' })
   }
 })
@@ -191,13 +213,14 @@ router.get('/templates', (req, res) => {
 
 /**
  * GET /api/bob/health
- * Check Bob API health
+ * Check Bob API health and rate limit status
  */
 router.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     aiEnabled: !!anthropic,
-    templates: Object.keys(APP_TYPES).length
+    templates: Object.keys(APP_TYPES).length,
+    rateLimits: getRateLimitStatus()
   })
 })
 
@@ -209,26 +232,21 @@ router.get('/health', (req, res) => {
  * Classify app type using AI
  */
 async function classifyWithAI(description) {
+  // Truncate description to prevent excessive token usage
+  const truncatedDesc = description.length > 500 ? description.substring(0, 500) + '...' : description
+  
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
-    max_tokens: 100,
+    max_tokens: 50,
     messages: [{
       role: 'user',
-      content: `Classify this app description into ONE of these categories:
-- booking (appointments, scheduling, reservations)
-- directory (listings, search, catalog)
-- waitlist (launch pages, signups, coming soon)
-- portfolio (showcase, gallery, projects)
-- store (ecommerce, products, selling)
-- event (registration, RSVP, tickets)
-- membership (community, courses, subscriptions)
-- internal (team tools, trackers, dashboards)
+      content: `Classify into ONE category: booking, directory, waitlist, portfolio, store, event, membership, internal.
 
-Description: "${description}"
+"${truncatedDesc}"
 
-Respond with ONLY the category name (one word, lowercase). If unclear, respond "unknown".`
+Reply with ONLY the category name (one word). If unclear: "unknown".`
     }]
-  })
+  }, { operationName: 'bob-classify' })
 
   const type = message.content[0].text.trim().toLowerCase()
   
@@ -265,14 +283,20 @@ function classifyWithKeywords(description) {
 async function generateAppCode(spec) {
   const prompt = buildCodeGenPrompt(spec)
   
+  // Estimate tokens to help rate limiter make informed decisions
+  const estimatedTokens = estimateTokenCount(prompt)
+  console.log(`[bob/generate] Estimated input tokens: ${estimatedTokens}`)
+  
+  // Use sonnet for code generation - it's faster, cheaper, and has higher rate limits
+  // Opus has only 30k input tokens/min which is too low for code gen prompts
   const message = await anthropic.messages.create({
-    model: 'claude-opus-4-20250514',
+    model: 'claude-sonnet-4-20250514',
     max_tokens: 8000,
     messages: [{
       role: 'user',
       content: prompt
     }]
-  })
+  }, { operationName: 'bob-generate-code' })
 
   const responseText = message.content[0].text
   
@@ -289,51 +313,28 @@ async function generateAppCode(spec) {
  * Build the code generation prompt
  */
 function buildCodeGenPrompt(spec) {
-  const basePrompt = `You are an expert full-stack developer. Generate a complete, production-ready web application.
+  // Compact spec - only include non-empty values to reduce tokens
+  const compactSpec = Object.fromEntries(
+    Object.entries(spec).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+  )
 
-TECH STACK:
-- Frontend: React 18 with Vite
-- Styling: Tailwind CSS
-- Backend: Express.js API routes (can be in same project)
-- Database: Supabase (PostgreSQL)
-- Auth: Supabase Auth (if needed)
-- Payments: Stripe (if needed)
+  const basePrompt = `Generate a production-ready React+Vite+Tailwind web app.
 
-APP SPECIFICATION:
-${JSON.stringify(spec, null, 2)}
+Stack: React 18, Vite, Tailwind CSS, Express.js backend, Supabase.
 
-REQUIREMENTS:
-1. Generate ALL necessary files
-2. Use modern React patterns (hooks, functional components)
-3. Make it mobile-responsive
-4. Include proper error handling
-5. Add loading states
-6. Use a clean, modern design
+Spec: ${JSON.stringify(compactSpec)}
 
-OUTPUT FORMAT:
-For each file, use this exact format:
+Rules: Modern React (hooks), mobile-responsive, error handling, loading states, clean design.
 
---- FILE: path/to/file.jsx ---
-\`\`\`jsx
-// file contents here
+Format each file as:
+--- FILE: path/to/file.ext ---
+\`\`\`lang
+content
 \`\`\`
 
---- FILE: path/to/another.css ---
-\`\`\`css
-/* file contents here */
-\`\`\`
+Generate: App.jsx, index.css (Tailwind), components, package.json, tailwind.config.js, schema.sql.`
 
-Generate these files:
-1. src/App.jsx - Main app component
-2. src/index.css - Global styles (Tailwind imports)
-3. src/components/*.jsx - Feature components
-4. package.json - Dependencies
-5. tailwind.config.js - Tailwind config
-6. Database schema (as SQL comment in a schema.sql file)
-
-Make it beautiful and functional. Users should be able to use it immediately.`
-
-  // Add template-specific instructions
+  // Add template-specific instructions (kept concise)
   const templateInstructions = getTemplateInstructions(spec.type, spec)
   
   return basePrompt + '\n\n' + templateInstructions
@@ -343,70 +344,16 @@ Make it beautiful and functional. Users should be able to use it immediately.`
  * Get template-specific generation instructions
  */
 function getTemplateInstructions(type, spec) {
+  // Concise template instructions to minimize token usage
   const instructions = {
-    booking: `
-BOOKING APP SPECIFIC:
-- Create a service selection page
-- Add a calendar/date picker for appointments
-- Include a booking confirmation flow
-- Show business info and services: ${spec.services || 'List services here'}
-- Business name: ${spec.businessName || 'My Business'}
-- Payment: ${spec.payments || 'Pay at appointment'}
-- Client accounts: ${spec.clientAccounts || 'Guest booking'}
-`,
-    waitlist: `
-WAITLIST APP SPECIFIC:
-- Hero section with product name and tagline
-- Email capture form (centered, prominent)
-- ${spec.referrals?.includes('Yes') ? 'Add referral system with unique codes and leaderboard' : 'Simple signup without referrals'}
-- ${spec.launchDate?.includes('Yes') ? 'Add countdown timer to launch' : 'Show "Coming Soon" without specific date'}
-- Product name: ${spec.productName || 'Our Product'}
-- Tagline: ${spec.tagline || 'Something amazing is coming'}
-`,
-    portfolio: `
-PORTFOLIO APP SPECIFIC:
-- Hero section with name and profession
-- Project gallery with ${spec.projectTypes || 'visual'} display
-- About section
-- Contact: ${spec.contact || 'Contact form'}
-- Name: ${spec.name || 'Your Name'}
-- Profession: ${spec.profession || 'Creative Professional'}
-`,
-    store: `
-STORE APP SPECIFIC:
-- Product grid with images and prices
-- Shopping cart functionality
-- Checkout flow with Stripe
-- Order confirmation
-`,
-    event: `
-EVENT APP SPECIFIC:
-- Event details hero section
-- Registration form
-- Ticket type selection (if applicable)
-- Confirmation and email
-`,
-    directory: `
-DIRECTORY APP SPECIFIC:
-- Search bar (prominent)
-- Listing cards
-- Filter sidebar
-- Detail view modal
-`,
-    membership: `
-MEMBERSHIP APP SPECIFIC:
-- Public landing page
-- Login/signup flow
-- Protected member area
-- Subscription tiers
-`,
-    internal: `
-INTERNAL TOOL SPECIFIC:
-- Dashboard with key metrics
-- Data table/list
-- Add/edit forms
-- Simple auth
-`
+    booking: `Booking app: service selection, date picker, confirmation. Services: ${spec.services || 'TBD'}. Business: ${spec.businessName || 'My Business'}. Payment: ${spec.payments || 'Pay at appointment'}. Accounts: ${spec.clientAccounts || 'Guest'}.`,
+    waitlist: `Waitlist: hero + email capture. ${spec.referrals?.includes('Yes') ? 'Referral system with codes.' : 'Simple signup.'} ${spec.launchDate?.includes('Yes') ? 'Countdown timer.' : 'Coming Soon.'} Name: ${spec.productName || 'Our Product'}. Tagline: ${spec.tagline || 'Something amazing is coming'}.`,
+    portfolio: `Portfolio: hero, ${spec.projectTypes || 'visual'} gallery, about, contact (${spec.contact || 'form'}). Name: ${spec.name || 'Your Name'}. Role: ${spec.profession || 'Creative Professional'}.`,
+    store: `Store: product grid, cart, Stripe checkout, order confirmation.`,
+    event: `Event: details hero, registration form, ticket selection, confirmation.`,
+    directory: `Directory: search bar, listing cards, filters, detail modal.`,
+    membership: `Membership: landing page, login/signup, protected area, subscription tiers.`,
+    internal: `Internal tool: dashboard metrics, data table, add/edit forms, simple auth.`
   }
 
   return instructions[type] || ''
