@@ -104,21 +104,45 @@ function localClassify(text) {
 
 /**
  * Generate app code using AI
+ * Includes automatic retry on rate limit (429) errors
  */
 export async function generateAppCode(appSpec) {
-  try {
-    const response = await fetch(`${API_URL}/api/bob/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ spec: appSpec })
-    })
-    
-    if (!response.ok) throw new Error('Code generation failed')
-    
-    return await response.json()
-  } catch (error) {
-    console.error('Generation error:', error)
-    throw error
+  const maxRetries = 3
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(`${API_URL}/api/bob/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ spec: appSpec })
+      })
+      
+      if (response.status === 429) {
+        // Rate limited - extract retry info and wait
+        const data = await response.json().catch(() => ({}))
+        const retryAfter = data.retryAfter || (15 * (attempt + 1)) // Default: 15s, 30s, 45s
+        
+        if (attempt < maxRetries) {
+          console.warn(`Rate limited. Retrying in ${retryAfter}s (attempt ${attempt + 1}/${maxRetries})`)
+          await new Promise(resolve => setTimeout(resolve, retryAfter * 1000))
+          continue
+        }
+        
+        throw new Error('AI service is busy. Please wait a minute and try again.')
+      }
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Code generation failed')
+      }
+      
+      return await response.json()
+    } catch (error) {
+      if (attempt >= maxRetries || !error.message?.includes('Rate') && !error.message?.includes('rate') && !error.message?.includes('429')) {
+        console.error('Generation error:', error)
+        throw error
+      }
+    }
   }
 }
 

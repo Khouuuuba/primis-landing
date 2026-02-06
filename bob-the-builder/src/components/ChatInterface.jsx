@@ -455,14 +455,25 @@ function ChatInterface({ currentApp: externalApp, onAppCreated, onShowPreview })
     } catch (error) {
       console.error('Build error:', error)
       
-      // Fallback to simulated build if API fails
-      await addAssistantMessage(
-        `⚠️ AI generation is not available right now.\n\n**Error:** ${error.message}\n\nI'll create a preview version for you to see the structure.`,
-        500
-      )
+      // Check if it's a rate limit error
+      const isRateLimit = error.message?.includes('busy') || error.message?.includes('rate') || error.message?.includes('429') || error.message?.includes('Rate')
       
-      // Simulated fallback
-      await simulateBuildFallback()
+      if (isRateLimit) {
+        await addAssistantMessage(
+          `⏳ **The AI service is a bit busy right now.**\n\nThis happens during peak usage. Please wait about 60 seconds and try again.\n\nType **"build"** to retry when ready!`,
+          500
+        )
+        setPhase(PHASES.CONFIRMATION) // Allow them to retry
+      } else {
+        // Fallback to simulated build if API fails for other reasons
+        await addAssistantMessage(
+          `⚠️ AI generation is not available right now.\n\n**Error:** ${error.message}\n\nI'll create a preview version for you to see the structure.`,
+          500
+        )
+        
+        // Simulated fallback
+        await simulateBuildFallback()
+      }
     }
   }
 
