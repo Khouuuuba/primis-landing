@@ -452,7 +452,6 @@ function MoltbotPanel({ user, showToast }) {
         {errors.instanceName && (
           <p className="error-text">{errors.instanceName}</p>
         )}
-        <p className="input-hint">Minimum 3 characters. This will appear in your dashboard and on Railway.</p>
       </div>
     </div>
   )
