@@ -550,14 +550,14 @@ router.post('/instances/:id/restart', requireAuth, async (req, res) => {
       console.log('Restart: Injecting BRAVE_API_KEY for web search')
     }
 
-    // Override model to avoid Opus rate limits (30k tokens/min)
-    // Sonnet has 80k tokens/min - prevents 429 errors on Telegram bots
+    // Override model — OPENCLAW_MODEL is what the start.sh actually reads
     if (instance.ai_provider === 'anthropic') {
+      updatedVars.OPENCLAW_MODEL = 'anthropic/claude-sonnet-4-20250514'
       updatedVars.SMALL_ANTHROPIC_MODEL = 'claude-sonnet-4-20250514'
       updatedVars.LARGE_ANTHROPIC_MODEL = 'claude-sonnet-4-20250514'
       updatedVars.ANTHROPIC_SMALL_MODEL = 'claude-sonnet-4-20250514'
       updatedVars.ANTHROPIC_LARGE_MODEL = 'claude-sonnet-4-20250514'
-      console.log('Restart: Model override to claude-sonnet-4 (rate limit mitigation)')
+      console.log('Restart: Model override to claude-sonnet-4-20250514')
     }
 
     // Update Railway service environment variables

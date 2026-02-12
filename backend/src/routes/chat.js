@@ -118,7 +118,7 @@ router.post('/send', requireAuth, async (req, res) => {
     // Load active skills for this agent
     try {
       const skillsResult = await query(
-        `SELECT name, content FROM moltbot_skills
+        `SELECT name, content FROM openclaw_skills
          WHERE instance_id = $1 AND is_active = true
          ORDER BY name`,
         [agentId]

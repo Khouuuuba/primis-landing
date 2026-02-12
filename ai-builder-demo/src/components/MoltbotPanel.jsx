@@ -88,73 +88,47 @@ function MoltbotPanel({ user, showToast }) {
   const [messagePacks, setMessagePacks] = useState([])
   const [buyingPackId, setBuyingPackId] = useState(null)
 
-  // Fetch existing instances with polling for active deployments
-  useEffect(() => {
-    const fetchInstances = async () => {
-      try {
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/moltbot/instances`,
-          { headers: { 'x-privy-id': user?.id } }
-        )
-        if (response.ok) {
-          const data = await response.json()
-          setInstances(data.instances || [])
-          return data.instances || []
-        }
-      } catch (err) {
-        console.error('Failed to fetch instances:', err)
-      } finally {
-        setLoadingInstances(false)
-      }
-      return []
-    }
-    
-    if (!user?.id) return
-
-    // Initial fetch
-    fetchInstances()
-
-    // Polling for instances that are still deploying/building
-    const POLLING_STATES = ['pending', 'deploying', 'building']
-    let pollInterval = null
-
-    const startPolling = () => {
-      if (pollInterval) return
-      
-      pollInterval = setInterval(async () => {
-        const updatedInstances = await fetchInstances()
-        
-        // Check if any instances still need polling
-        const needsPolling = updatedInstances.some(
-          instance => POLLING_STATES.includes(instance.status)
-        )
-        
-        if (!needsPolling && pollInterval) {
-          clearInterval(pollInterval)
-          pollInterval = null
-        }
-      }, 5000) // Poll every 5 seconds
-    }
-
-    // Start polling if there are instances being deployed
-    const checkAndPoll = async () => {
-      const currentInstances = await fetchInstances()
-      const needsPolling = currentInstances.some(
-        instance => POLLING_STATES.includes(instance.status)
+  // Fetch instances from API
+  const fetchInstances = async () => {
+    if (!user?.id) return []
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/moltbot/instances`,
+        { headers: { 'x-privy-id': user?.id } }
       )
-      if (needsPolling) {
-        startPolling()
+      if (response.ok) {
+        const data = await response.json()
+        setInstances(data.instances || [])
+        return data.instances || []
       }
+    } catch (err) {
+      console.error('Failed to fetch instances:', err)
+    } finally {
+      setLoadingInstances(false)
     }
-    
-    checkAndPoll()
+    return []
+  }
 
-    return () => {
-      if (pollInterval) {
-        clearInterval(pollInterval)
-      }
-    }
+  // Initial fetch on mount
+  useEffect(() => {
+    if (!user?.id) return
+    fetchInstances()
   }, [user?.id])
+
+  // Derived flag: true when any instance is still building/deploying
+  const POLLING_STATES = ['pending', 'deploying', 'building']
+  const hasActiveBuilds = instances.some(i => POLLING_STATES.includes(i.status))
+
+  // Poll for status updates while there are active builds
+  useEffect(() => {
+    if (!user?.id || !hasActiveBuilds) return
+
+    const pollInterval = setInterval(() => {
+      fetchInstances()
+    }, 5000) // Poll every 5 seconds
+
+    return () => clearInterval(pollInterval)
+  }, [user?.id, hasActiveBuilds])
 
   // Fetch message usage for the current billing period
   useEffect(() => {

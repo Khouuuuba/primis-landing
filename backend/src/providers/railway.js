@@ -217,13 +217,15 @@ async function setServiceVariables({ projectId, environmentId, serviceId, variab
  * @param {string} serviceId - Railway service ID
  */
 async function getService(serviceId) {
+  // Fetch the 5 most recent deployments so we can pick the latest one
+  // Railway's deployments connection may not always return newest-first with first:1
   const query = `
     query Service($serviceId: String!) {
       service(id: $serviceId) {
         id
         name
         projectId
-        deployments(first: 1) {
+        deployments(first: 10) {
           edges {
             node {
               id
@@ -238,6 +240,14 @@ async function getService(serviceId) {
   `
   
   const data = await railwayQuery(query, { serviceId })
+  
+  if (data.service && data.service.deployments?.edges?.length > 1) {
+    // Sort deployments by createdAt DESC to ensure we get the latest
+    data.service.deployments.edges.sort((a, b) => 
+      new Date(b.node.createdAt) - new Date(a.node.createdAt)
+    )
+  }
+  
   return data.service
 }
 
@@ -417,7 +427,10 @@ async function deployMoltbot({ name, envVars }) {
     source: 'Khouuuuba/moltbot-template'
   })
   
-  // Set environment variables
+  // Generate a domain first (we need it for env vars)
+  const domain = await generateServiceDomain(service.id, environment.id)
+  
+  // Set environment variables — MUST happen before the build starts using them
   await setServiceVariables({
     projectId,
     environmentId: environment.id,
@@ -429,38 +442,53 @@ async function deployMoltbot({ name, envVars }) {
       CLAWDBOT_PREFER_PNPM: '1',
       NODE_OPTIONS: '--max-old-space-size=1536',
       
-      // Model override: Use Sonnet instead of Opus to avoid rate limits
-      // Opus has only 30k input tokens/min; Sonnet has 80k input tokens/min
-      // These env vars are recognized by the Clawdbot/Moltbot framework
+      // Model override — OPENCLAW_MODEL is what the moltbot start.sh reads
+      // Also set the framework-specific vars as fallback
+      OPENCLAW_MODEL: 'anthropic/claude-sonnet-4-20250514',
       SMALL_ANTHROPIC_MODEL: 'claude-sonnet-4-20250514',
       LARGE_ANTHROPIC_MODEL: 'claude-sonnet-4-20250514',
       ANTHROPIC_SMALL_MODEL: 'claude-sonnet-4-20250514',
       ANTHROPIC_LARGE_MODEL: 'claude-sonnet-4-20250514',
       
+      // Public URL — needed for webhook registration (Telegram, etc.)
+      ...(domain ? { RAILWAY_PUBLIC_DOMAIN: domain, PUBLIC_URL: `https://${domain}` } : {}),
+      
       // Route through Primis API proxy for centralized rate limiting (Sprint R2)
-      // If the bot framework supports custom base URL, this enables the proxy
       ...(process.env.API_BASE_URL ? {
         ANTHROPIC_BASE_URL: `${process.env.API_BASE_URL}/api/anthropic-proxy`,
         ANTHROPIC_API_BASE_URL: `${process.env.API_BASE_URL}/api/anthropic-proxy`
       } : {}),
       
-      // User-provided variables
+      // User-provided variables (ANTHROPIC_API_KEY, TELEGRAM_BOT_TOKEN, etc.)
       ...envVars
     }
   })
   
-  // Generate a domain
-  const domain = await generateServiceDomain(service.id, environment.id)
+  // Wait briefly for Railway to propagate env vars, then trigger an explicit redeploy.
+  // The createService auto-build may have started BEFORE env vars were set.
+  // This redeploy ensures the build runs with all env vars in place.
+  console.log(`[deployMoltbot] Waiting 3s for env var propagation...`)
+  await new Promise(resolve => setTimeout(resolve, 3000))
   
-  // Explicitly trigger a deployment — Railway's ServiceCreate with a repo source
-  // doesn't always auto-build, especially after env vars are set separately.
-  // This ensures the build starts with all env vars in place.
-  try {
-    console.log(`[deployMoltbot] Triggering explicit deployment for service ${service.id}`)
-    await redeployService(service.id, environment.id)
-  } catch (redeployErr) {
-    console.warn(`[deployMoltbot] Explicit redeploy failed (may already be building):`, redeployErr.message)
-    // Non-fatal: Railway might have already auto-triggered a build from the repo link
+  // Retry redeploy up to 3 times — this is critical for the bot to function
+  let redeploySuccess = false
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      console.log(`[deployMoltbot] Triggering redeploy for service ${service.id} (attempt ${attempt}/3)`)
+      await redeployService(service.id, environment.id)
+      redeploySuccess = true
+      console.log(`[deployMoltbot] Redeploy triggered successfully`)
+      break
+    } catch (redeployErr) {
+      console.warn(`[deployMoltbot] Redeploy attempt ${attempt} failed:`, redeployErr.message)
+      if (attempt < 3) {
+        await new Promise(resolve => setTimeout(resolve, 2000))
+      }
+    }
+  }
+  
+  if (!redeploySuccess) {
+    console.warn(`[deployMoltbot] All redeploy attempts failed — the auto-build from createService will run but may miss env vars`)
   }
   
   return {
@@ -468,7 +496,8 @@ async function deployMoltbot({ name, envVars }) {
     environmentId: environment.id,
     projectId,
     name: service.name,
-    domain: domain ? `https://${domain}` : null
+    domain: domain ? `https://${domain}` : null,
+    redeploySuccess
   }
 }
 
@@ -506,9 +535,14 @@ async function getServiceStatus(serviceId) {
     if (!service) return null
     
     const latestDeployment = service.deployments?.edges?.[0]?.node
-    if (!latestDeployment) return 'pending'
+    if (!latestDeployment) {
+      console.log(`[getServiceStatus] ${serviceId}: no deployments found`)
+      return 'pending'
+    }
     
-    return mapStatus(latestDeployment.status)
+    const mapped = mapStatus(latestDeployment.status)
+    console.log(`[getServiceStatus] ${serviceId}: Railway=${latestDeployment.status} → mapped=${mapped} (deployment ${latestDeployment.id}, created ${latestDeployment.createdAt})`)
+    return mapped
   } catch (error) {
     console.warn(`Failed to get service status for ${serviceId}:`, error.message)
     return null
