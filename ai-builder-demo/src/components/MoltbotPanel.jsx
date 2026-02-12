@@ -343,9 +343,15 @@ function MoltbotPanel({ user, showToast }) {
   }
 
   const handleDeploy = async () => {
-    // Name was validated at step 0, just check it's still there
+    // Name was validated at step 0, but check it's still there after redirect
     if (!formData.instanceName || formData.instanceName.trim().length < 3) {
-      setErrors({ instanceName: 'Name must be at least 3 characters' })
+      setErrors({ deploy: 'Agent name is missing. Please go back and enter a name.' })
+      showToast?.('Agent name is missing — please go back to step 1', 'error')
+      return
+    }
+    if (!formData.aiProvider) {
+      setErrors({ deploy: 'AI provider is missing. Please go back and select one.' })
+      showToast?.('AI provider is missing — please go back to step 2', 'error')
       return
     }
 
@@ -708,8 +714,8 @@ function MoltbotPanel({ user, showToast }) {
       const data = await response.json()
 
       if (data.url) {
-        // Store form data in sessionStorage for after payment
-        sessionStorage.setItem('openclawFormData', JSON.stringify(formData))
+        // Store form data in localStorage for after payment (sessionStorage can be lost on redirect)
+        localStorage.setItem('openclawFormData', JSON.stringify(formData))
         // Redirect to Stripe checkout
         window.location.href = data.url
       } else {
@@ -730,22 +736,37 @@ function MoltbotPanel({ user, showToast }) {
     const openclawStatus = params.get('openclaw')
     
     if (openclawStatus === 'success') {
-      // Restore form data and proceed to deploy
-      const savedFormData = sessionStorage.getItem('openclawFormData')
+      // Restore form data from localStorage (survives Stripe redirect)
+      const savedFormData = localStorage.getItem('openclawFormData')
       if (savedFormData) {
-        setFormData(JSON.parse(savedFormData))
-        sessionStorage.removeItem('openclawFormData')
+        try {
+          const parsed = JSON.parse(savedFormData)
+          setFormData(parsed)
+        } catch (e) {
+          console.error('Failed to parse saved form data:', e)
+        }
+        localStorage.removeItem('openclawFormData')
       }
       setIsPaid(true)
       setShowWizard(true)
       setCurrentStep(4) // Go to deploy step
       showToast?.('Payment successful! Ready to deploy.', 'success')
       
-      // Clear URL params
-      window.history.replaceState({}, '', window.location.pathname)
+      // Keep tab param so sidebar stays on moltbot
+      window.history.replaceState({}, '', window.location.pathname + '?tab=moltbot')
     } else if (openclawStatus === 'cancelled') {
+      // Restore form data so user can retry
+      const savedFormData = localStorage.getItem('openclawFormData')
+      if (savedFormData) {
+        try {
+          setFormData(JSON.parse(savedFormData))
+        } catch (e) { /* ignore */ }
+        // Don't remove — user might retry
+      }
+      setShowWizard(true)
+      setCurrentStep(3) // Go back to payment step to retry
       showToast?.('Payment cancelled', 'info')
-      window.history.replaceState({}, '', window.location.pathname)
+      window.history.replaceState({}, '', window.location.pathname + '?tab=moltbot')
     }
   }, [])
 
