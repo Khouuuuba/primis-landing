@@ -1,7 +1,8 @@
 import { Router } from 'express'
 import { query } from '../db/connection.js'
 import { requireAuth } from '../middleware/auth.js'
-import { stripe, CREDIT_PACKAGES } from '../stripe.js'
+import { stripe, CREDIT_PACKAGES, MESSAGE_PACKS } from '../stripe.js'
+import { sendSubscriptionConfirmation, sendMessagePackConfirmation } from '../services/email.js'
 
 const router = Router()
 
@@ -133,6 +134,8 @@ router.post('/webhook', async (req, res) => {
       const session = event.data.object
       if (session.metadata?.type === 'openclaw_subscription') {
         await handleOpenClawSubscription(session)
+      } else if (session.metadata?.type === 'message_pack') {
+        await handleMessagePackPurchase(session)
       } else {
         await handleSuccessfulPayment(session)
       }
@@ -184,6 +187,24 @@ async function handleOpenClawSubscription(session) {
       [subscriptionId, userId]
     )
 
+    // Ensure user has a usage quota row (200 messages/month)
+    await query(
+      `INSERT INTO usage_quotas (user_id, monthly_limit, period_start)
+       VALUES ($1, 200, date_trunc('month', NOW()))
+       ON CONFLICT (user_id) DO NOTHING`,
+      [userId]
+    )
+
+    // Send confirmation email
+    const customerEmail = session.customer_details?.email || session.customer_email
+    if (customerEmail) {
+      await sendSubscriptionConfirmation({
+        to: customerEmail,
+        agentName: instanceName || 'My Agent',
+        subscriptionId
+      })
+    }
+
     console.log(`OpenClaw subscription recorded for user ${userId}`)
   } catch (error) {
     console.error('Failed to record OpenClaw subscription:', error)
@@ -215,6 +236,60 @@ async function handleOpenClawCancellation(subscription) {
 
   } catch (error) {
     console.error('Failed to handle OpenClaw cancellation:', error)
+  }
+}
+
+/**
+ * Handle message pack purchase — add bonus messages to user's quota
+ */
+async function handleMessagePackPurchase(session) {
+  const { userId, packId, messagesCount } = session.metadata
+  const messages = parseInt(messagesCount, 10)
+  const amountPaid = session.amount_total / 100
+
+  console.log(`Processing message pack for user ${userId}: ${messages} messages ($${amountPaid})`)
+
+  try {
+    // Upsert quota row and add bonus messages
+    await query(
+      `INSERT INTO usage_quotas (user_id, monthly_limit, bonus_messages, updated_at)
+       VALUES ($1, 200, $2, NOW())
+       ON CONFLICT (user_id) DO UPDATE 
+       SET bonus_messages = usage_quotas.bonus_messages + $2,
+           updated_at = NOW()`,
+      [userId, messages]
+    )
+
+    // Record the purchase for audit trail
+    await query(
+      `INSERT INTO usage_purchases (user_id, messages_count, amount_usd, stripe_session_id)
+       VALUES ($1, $2, $3, $4)`,
+      [userId, messages, amountPaid, session.id]
+    )
+
+    // Get updated remaining count for email
+    let newRemaining
+    try {
+      const remainResult = await query(
+        `SELECT get_remaining_messages($1) as remaining`, [userId]
+      )
+      newRemaining = remainResult.rows[0]?.remaining
+    } catch { /* non-fatal */ }
+
+    // Send confirmation email
+    const customerEmail = session.customer_details?.email || session.customer_email
+    if (customerEmail) {
+      await sendMessagePackConfirmation({
+        to: customerEmail,
+        messagesCount: messages,
+        amountPaid,
+        newRemaining
+      })
+    }
+
+    console.log(`Added ${messages} bonus messages to user ${userId}`)
+  } catch (error) {
+    console.error('Failed to process message pack purchase:', error)
   }
 }
 
@@ -366,8 +441,151 @@ router.post('/verify', requireAuth, async (req, res) => {
 })
 
 // =============================================================================
+// MESSAGE PACKS (Buy More Messages)
+// =============================================================================
+
+/**
+ * GET /api/payments/message-packs
+ * List available message packs for purchase
+ */
+router.get('/message-packs', (req, res) => {
+  res.json({
+    packs: MESSAGE_PACKS.map(p => ({
+      id: p.id,
+      name: p.name,
+      messages: p.messages,
+      price: p.price / 100,
+      popular: p.popular || false,
+      description: p.description
+    }))
+  })
+})
+
+/**
+ * POST /api/payments/buy-messages
+ * Create a Stripe checkout session for a one-time message pack purchase
+ */
+router.post('/buy-messages', requireAuth, async (req, res) => {
+  try {
+    if (!stripe) {
+      return res.status(503).json({ error: 'Payment service not configured' })
+    }
+
+    const { packId } = req.body
+    const userId = req.user.id
+    const userEmail = req.user.email
+
+    // Find the pack
+    const pack = MESSAGE_PACKS.find(p => p.id === packId)
+    if (!pack) {
+      return res.status(400).json({ error: 'Invalid message pack' })
+    }
+
+    // Get or create Stripe customer
+    let customerId = req.user.stripe_customer_id
+    
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: userEmail,
+        metadata: { userId, privyId: req.user.privy_id }
+      })
+      customerId = customer.id
+      await query(
+        `UPDATE users SET stripe_customer_id = $1 WHERE id = $2`,
+        [customerId, userId]
+      )
+    }
+
+    // Create one-time checkout session
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `${pack.name} — Primis AI Messages`,
+              description: `${pack.messages} additional Claude Opus messages`,
+            },
+            unit_amount: pack.price,
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${process.env.AI_BUILDER_URL || 'http://localhost:5173'}?tab=moltbot&messages=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.AI_BUILDER_URL || 'http://localhost:5173'}?tab=moltbot&messages=cancelled`,
+      metadata: {
+        userId,
+        type: 'message_pack',
+        packId: pack.id,
+        messagesCount: pack.messages.toString()
+      }
+    })
+
+    res.json({
+      sessionId: session.id,
+      url: session.url
+    })
+
+  } catch (error) {
+    console.error('Buy messages checkout error:', error)
+    res.status(500).json({ error: 'Failed to create checkout session' })
+  }
+})
+
+// =============================================================================
 // OPENCLAW SUBSCRIPTION
 // =============================================================================
+
+/**
+ * POST /api/payments/verify-messages
+ * Verify a message pack purchase (after Stripe redirect) 
+ * Also adds bonus messages if not already processed by webhook
+ */
+router.post('/verify-messages', requireAuth, async (req, res) => {
+  try {
+    if (!stripe) {
+      return res.status(503).json({ error: 'Payment service not configured' })
+    }
+
+    const { sessionId } = req.body
+    const userId = req.user.id
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId)
+
+    if (session.payment_status === 'paid' && session.metadata?.type === 'message_pack') {
+      // Check if already processed
+      const existing = await query(
+        `SELECT id FROM usage_purchases WHERE stripe_session_id = $1`,
+        [session.id]
+      )
+
+      if (existing.rows.length === 0) {
+        // Not yet processed by webhook — do it now
+        await handleMessagePackPurchase(session)
+      }
+
+      // Return updated usage
+      const countResult = await query(
+        `SELECT get_remaining_messages($1) as remaining`,
+        [userId]
+      )
+
+      res.json({
+        success: true,
+        messagesAdded: parseInt(session.metadata.messagesCount, 10),
+        remaining: countResult.rows[0]?.remaining || 0
+      })
+    } else {
+      res.json({ success: false, status: session.payment_status })
+    }
+  } catch (error) {
+    console.error('Message pack verification error:', error)
+    res.status(500).json({ error: 'Failed to verify purchase' })
+  }
+})
 
 /**
  * POST /api/payments/openclaw-checkout

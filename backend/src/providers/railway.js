@@ -34,6 +34,22 @@ async function railwayQuery(query, variables = {}) {
     body: JSON.stringify({ query, variables })
   })
 
+  // Guard against non-JSON responses (Railway returning HTML error pages on 502/503/504)
+  const contentType = response.headers.get('content-type') || ''
+  if (!response.ok) {
+    const bodyPreview = contentType.includes('json') 
+      ? JSON.stringify(await response.json()) 
+      : (await response.text()).substring(0, 200)
+    console.error(`Railway API HTTP ${response.status}: ${bodyPreview}`)
+    throw new Error(`Railway API returned HTTP ${response.status}. The Railway platform may be experiencing issues.`)
+  }
+
+  if (!contentType.includes('json')) {
+    const bodyPreview = (await response.text()).substring(0, 200)
+    console.error(`Railway API returned non-JSON (${contentType}): ${bodyPreview}`)
+    throw new Error('Railway API returned non-JSON response. The Railway platform may be experiencing issues.')
+  }
+
   const data = await response.json()
   
   if (data.errors) {
@@ -390,9 +406,14 @@ async function deployMoltbot({ name, envVars }) {
   
   // Create service from our Moltbot template repo
   // Railway accepts either full URL or owner/repo format
+  // Add short unique suffix to prevent name collisions when redeploying same name
+  const uniqueSuffix = Date.now().toString(36).slice(-4)
+  const serviceName = `moltbot-${name}-${uniqueSuffix}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').slice(0, 60)
+  
+  console.log(`[deployMoltbot] Creating service: ${serviceName}`)
   const service = await createService({
     projectId,
-    name: `moltbot-${name}`.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+    name: serviceName,
     source: 'Khouuuuba/moltbot-template'
   })
   
@@ -431,6 +452,17 @@ async function deployMoltbot({ name, envVars }) {
   // Generate a domain
   const domain = await generateServiceDomain(service.id, environment.id)
   
+  // Explicitly trigger a deployment — Railway's ServiceCreate with a repo source
+  // doesn't always auto-build, especially after env vars are set separately.
+  // This ensures the build starts with all env vars in place.
+  try {
+    console.log(`[deployMoltbot] Triggering explicit deployment for service ${service.id}`)
+    await redeployService(service.id, environment.id)
+  } catch (redeployErr) {
+    console.warn(`[deployMoltbot] Explicit redeploy failed (may already be building):`, redeployErr.message)
+    // Non-fatal: Railway might have already auto-triggered a build from the repo link
+  }
+  
   return {
     serviceId: service.id,
     environmentId: environment.id,
@@ -453,7 +485,11 @@ function mapStatus(railwayStatus) {
     'CRASHED': 'failed',
     'FAILED': 'failed',
     'REMOVED': 'terminated',
-    'SLEEPING': 'stopped'
+    'SLEEPING': 'stopped',
+    'SKIPPED': 'failed',
+    'WAITING': 'building',
+    'QUEUED': 'building',
+    'NEEDS_APPROVAL': 'pending'
   }
   return statusMap[railwayStatus] || 'pending'
 }

@@ -3,7 +3,7 @@ import './MoltbotPanel.css'
 import SkillsManager from './SkillsManager'
 import DeploymentProgress from './DeploymentProgress'
 
-const STEPS = ['provider', 'channels', 'payment', 'deploy']
+const STEPS = ['name', 'provider', 'channels', 'payment', 'deploy']
 
 const PROVIDERS = {
   anthropic: {
@@ -83,6 +83,10 @@ function MoltbotPanel({ user, showToast }) {
   const [skillsInstance, setSkillsInstance] = useState(null) // Instance to manage skills for
   const [deletingInstanceId, setDeletingInstanceId] = useState(null)
   const [restartingInstanceId, setRestartingInstanceId] = useState(null)
+  const [usage, setUsage] = useState(null) // { used, limit, bonus, remaining, total }
+  const [showBuyModal, setShowBuyModal] = useState(false)
+  const [messagePacks, setMessagePacks] = useState([])
+  const [buyingPackId, setBuyingPackId] = useState(null)
 
   // Fetch existing instances with polling for active deployments
   useEffect(() => {
@@ -152,17 +156,127 @@ function MoltbotPanel({ user, showToast }) {
     }
   }, [user?.id])
 
+  // Fetch message usage for the current billing period
+  useEffect(() => {
+    if (!user?.id) return
+    const fetchUsage = async () => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/chat/usage`,
+          { headers: { 'x-privy-id': user?.id } }
+        )
+        if (response.ok) {
+          const data = await response.json()
+          setUsage(data)
+        }
+      } catch (err) {
+        console.error('Failed to fetch usage:', err)
+      }
+    }
+    fetchUsage()
+  }, [user?.id])
+
+  // Handle ?messages=success redirect from Stripe
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const msgStatus = params.get('messages')
+    const sessionId = params.get('session_id')
+    
+    if (msgStatus === 'success' && sessionId) {
+      // Verify the purchase and refresh usage
+      (async () => {
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/payments/verify-messages`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-privy-id': user?.id },
+              body: JSON.stringify({ sessionId })
+            }
+          )
+          if (response.ok) {
+            const data = await response.json()
+            if (data.success) {
+              showToast?.(`${data.messagesAdded} messages added! You now have ${data.remaining} remaining.`, 'success')
+              // Refresh usage
+              const usageRes = await fetch(
+                `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/chat/usage`,
+                { headers: { 'x-privy-id': user?.id } }
+              )
+              if (usageRes.ok) setUsage(await usageRes.json())
+            }
+          }
+        } catch (err) {
+          console.error('Message verification failed:', err)
+        }
+      })()
+      window.history.replaceState({}, '', window.location.pathname + '?tab=moltbot')
+    } else if (msgStatus === 'cancelled') {
+      showToast?.('Message purchase cancelled', 'info')
+      window.history.replaceState({}, '', window.location.pathname + '?tab=moltbot')
+    }
+  }, [])
+
+  const openBuyModal = async () => {
+    setShowBuyModal(true)
+    if (messagePacks.length === 0) {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/payments/message-packs`
+        )
+        if (response.ok) {
+          const data = await response.json()
+          setMessagePacks(data.packs || [])
+        }
+      } catch (err) {
+        console.error('Failed to fetch message packs:', err)
+      }
+    }
+  }
+
+  const handleBuyPack = async (packId) => {
+    setBuyingPackId(packId)
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/payments/buy-messages`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-privy-id': user?.id },
+          body: JSON.stringify({ packId })
+        }
+      )
+      const data = await response.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        throw new Error(data.error || 'Failed to create checkout')
+      }
+    } catch (err) {
+      showToast?.(err.message || 'Purchase failed', 'error')
+    } finally {
+      setBuyingPackId(null)
+    }
+  }
+
   const validateStep = (step) => {
     const newErrors = {}
 
+    // Step 0: Name
     if (step === 0) {
+      if (!formData.instanceName || formData.instanceName.trim().length < 3) {
+        newErrors.instanceName = 'Name must be at least 3 characters'
+      }
+    }
+
+    // Step 1: AI Provider
+    if (step === 1) {
       if (!formData.aiProvider) {
         newErrors.aiProvider = 'Please select an AI provider'
       }
-      // Note: API keys are provided by Primis, no user input needed
     }
 
-    if (step === 1) {
+    // Step 2: Channels
+    if (step === 2) {
       const enabledChannels = Object.entries(formData.channels).filter(([_, v]) => v.enabled)
       if (enabledChannels.length === 0) {
         newErrors.channels = 'Please enable at least one channel'
@@ -174,11 +288,8 @@ function MoltbotPanel({ user, showToast }) {
       })
     }
 
-    if (step === 2) {
-      if (!formData.instanceName || formData.instanceName.length < 3) {
-        newErrors.instanceName = 'Name must be at least 3 characters'
-      }
-    }
+    // Step 3: Payment (handled by Stripe redirect)
+    // Step 4: Deploy (validated by handleDeploy)
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -232,7 +343,11 @@ function MoltbotPanel({ user, showToast }) {
   }
 
   const handleDeploy = async () => {
-    if (!validateStep(2)) return
+    // Name was validated at step 0, just check it's still there
+    if (!formData.instanceName || formData.instanceName.trim().length < 3) {
+      setErrors({ instanceName: 'Name must be at least 3 characters' })
+      return
+    }
 
     setIsDeploying(true)
     setErrors({})
@@ -300,19 +415,49 @@ function MoltbotPanel({ user, showToast }) {
   const renderStepContent = () => {
     switch (currentStep) {
       case 0:
-        return renderProviderStep()
+        return renderNameStep()
       case 1:
-        return renderChannelsStep()
+        return renderProviderStep()
       case 2:
-        return renderPaymentStep()
+        return renderChannelsStep()
       case 3:
+        return renderPaymentStep()
+      case 4:
         return renderDeployStep()
       default:
         return null
     }
   }
 
-  // Step 1: AI Provider Selection
+  // Step 1: Name Your Agent
+  const renderNameStep = () => (
+    <div className="wizard-step">
+      <h3 className="step-title">Name Your Agent</h3>
+      <p className="step-description">
+        Give your AI assistant a name. This will be its identity across all channels.
+      </p>
+
+      <div className="name-section">
+        <label className="input-label">Agent Name</label>
+        <input
+          type="text"
+          className={`name-input ${errors.instanceName ? 'error' : ''}`}
+          placeholder="e.g. My Sales Bot"
+          value={formData.instanceName}
+          onChange={(e) => {
+            setFormData(prev => ({ ...prev, instanceName: e.target.value }))
+            setErrors(prev => ({ ...prev, instanceName: null }))
+          }}
+        />
+        {errors.instanceName && (
+          <p className="error-text">{errors.instanceName}</p>
+        )}
+        <p className="input-hint">Minimum 3 characters. This will appear in your dashboard and on Railway.</p>
+      </div>
+    </div>
+  )
+
+  // Step 2: AI Provider Selection
   const renderProviderStep = () => (
     <div className="wizard-step">
       <h3 className="step-title">Choose Your Brain</h3>
@@ -357,7 +502,7 @@ function MoltbotPanel({ user, showToast }) {
           <div className="notice-icon">✨</div>
           <div className="notice-content">
             <strong>AI Included</strong>
-            <p>Your subscription includes unlimited {PROVIDERS[formData.aiProvider].name} access. No API key needed!</p>
+            <p>Your $30/mo subscription includes 200 {PROVIDERS[formData.aiProvider].name} Opus messages. No API key needed!</p>
           </div>
         </div>
       )}
@@ -594,7 +739,7 @@ function MoltbotPanel({ user, showToast }) {
       }
       setIsPaid(true)
       setShowWizard(true)
-      setCurrentStep(3) // Go to deploy step
+      setCurrentStep(4) // Go to deploy step
       showToast?.('Payment successful! Ready to deploy.', 'success')
       
       // Clear URL params
@@ -614,15 +759,19 @@ function MoltbotPanel({ user, showToast }) {
       <div className="wizard-step">
         <h3 className="step-title">Complete Your Subscription</h3>
         <p className="step-description">
-          Review your configuration and subscribe to deploy your assistant.
+          Review your agent and subscribe to deploy.
         </p>
 
         <div className="payment-summary">
           <div className="summary-section">
-            <h4>Your Configuration</h4>
+            <h4>Your Agent</h4>
             <div className="summary-item">
-              <span className="summary-label">AI Provider</span>
-              <span className="summary-value">{PROVIDERS[formData.aiProvider]?.name}</span>
+              <span className="summary-label">Name</span>
+              <span className="summary-value">{formData.instanceName}</span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-label">AI Model</span>
+              <span className="summary-value">{PROVIDERS[formData.aiProvider]?.name} (Opus)</span>
             </div>
             <div className="summary-item">
               <span className="summary-label">Channels</span>
@@ -632,7 +781,7 @@ function MoltbotPanel({ user, showToast }) {
 
           <div className="pricing-section">
             <div className="price-row">
-              <span>OpenClaw Hosting</span>
+              <span>Primis Pro — AI Agent Hosting</span>
               <span className="price">$30/mo</span>
             </div>
             <div className="price-divider"></div>
@@ -643,9 +792,10 @@ function MoltbotPanel({ user, showToast }) {
           </div>
 
           <div className="payment-features">
-            <div className="feature-item">✓ 24/7 managed hosting</div>
-            <div className="feature-item">✓ Automatic updates</div>
-            <div className="feature-item">✓ Instant restart on crash</div>
+            <div className="feature-item">✓ Claude Opus — most powerful AI model</div>
+            <div className="feature-item">✓ 200 messages/month included</div>
+            <div className="feature-item">✓ 24/7 managed hosting on Railway</div>
+            <div className="feature-item">✓ Buy more messages anytime</div>
             <div className="feature-item">✓ Cancel anytime</div>
           </div>
 
@@ -671,7 +821,7 @@ function MoltbotPanel({ user, showToast }) {
           </button>
 
           <p className="payment-note">
-            Secure payment via Stripe. You'll be redirected to complete payment.
+            Secure payment via Stripe. You'll receive a confirmation email to manage your subscription.
           </p>
 
           {errors.payment && (
@@ -682,7 +832,7 @@ function MoltbotPanel({ user, showToast }) {
     )
   }
 
-  // Step 4: Deploy (after payment)
+  // Step 5: Deploy (after payment)
   const renderDeployStep = () => {
     // Find the deploying instance from our list (it gets updated via polling)
     const deployingInstance = deployedInstance 
@@ -718,7 +868,7 @@ function MoltbotPanel({ user, showToast }) {
       <div className="wizard-step">
         <h3 className="step-title">Ready to Deploy!</h3>
         <p className="step-description">
-          Payment confirmed. Name your instance and launch.
+          Payment confirmed. Your agent is ready to launch.
         </p>
 
         <div className="payment-confirmed">
@@ -733,30 +883,21 @@ function MoltbotPanel({ user, showToast }) {
 
         <div className="review-section compact">
           <div className="review-item">
+            <span className="review-label">Agent</span>
+            <span className="review-value">{formData.instanceName}</span>
+          </div>
+          <div className="review-item">
             <span className="review-label">AI</span>
-            <span className="review-value">{PROVIDERS[formData.aiProvider]?.name}</span>
+            <span className="review-value">{PROVIDERS[formData.aiProvider]?.name} (Opus)</span>
           </div>
           <div className="review-item">
             <span className="review-label">Channels</span>
             <span className="review-value">{enabledChannels.join(', ')}</span>
           </div>
-        </div>
-
-        <div className="name-section">
-          <label className="input-label">Instance Name</label>
-          <input
-            type="text"
-            className={`name-input ${errors.instanceName ? 'error' : ''}`}
-            placeholder="my-moltbot"
-            value={formData.instanceName}
-            onChange={(e) => {
-              setFormData(prev => ({ ...prev, instanceName: e.target.value }))
-              setErrors(prev => ({ ...prev, instanceName: null }))
-            }}
-          />
-          {errors.instanceName && (
-            <p className="error-text">{errors.instanceName}</p>
-          )}
+          <div className="review-item">
+            <span className="review-label">Messages</span>
+            <span className="review-value">200/month included</span>
+          </div>
         </div>
 
         {errors.deploy && (
@@ -777,6 +918,34 @@ function MoltbotPanel({ user, showToast }) {
     return (
       <div className="existing-instances">
         <h3>Your Assistants</h3>
+
+        {/* Usage indicator */}
+        {usage && (
+          <div className="usage-indicator">
+            <div className="usage-header">
+              <span className="usage-label">Messages this month</span>
+              <span className="usage-count">{usage.used} / {usage.total}</span>
+            </div>
+            <div className="usage-bar">
+              <div 
+                className={`usage-fill ${usage.remaining <= 20 ? 'low' : ''} ${usage.remaining <= 0 ? 'empty' : ''}`} 
+                style={{ width: `${Math.min(100, (usage.used / usage.total) * 100)}%` }}
+              />
+            </div>
+            {usage.remaining <= 0 && (
+              <div className="usage-limit-msg">
+                <span>⚠️ Message limit reached</span>
+                <button className="buy-more-link" onClick={openBuyModal}>
+                  Buy more messages →
+                </button>
+              </div>
+            )}
+            {usage.remaining > 0 && usage.remaining <= 20 && (
+              <p className="usage-warning">⚡ {usage.remaining} messages remaining</p>
+            )}
+          </div>
+        )}
+
         <div className="instances-list">
           {instances.map(instance => (
             <div key={instance.id} className={`instance-item ${instance.status}`}>
@@ -806,6 +975,14 @@ function MoltbotPanel({ user, showToast }) {
                     >
                       {restartingInstanceId === instance.id ? 'Restarting...' : 'Restart'}
                     </button>
+                    {usage && usage.remaining <= 20 && (
+                      <button 
+                        className="action-btn accent"
+                        onClick={openBuyModal}
+                      >
+                        Buy Messages
+                      </button>
+                    )}
                   </>
                 )}
                 <button 
@@ -967,7 +1144,7 @@ function MoltbotPanel({ user, showToast }) {
 
           {/* Bottom CTA */}
           <div className="intro-footer">
-            <p className="footer-note">Powered by Claude or GPT • $30/mo</p>
+            <p className="footer-note">Powered by Claude Opus • $30/mo • 200 messages included</p>
             <button className="deploy-cta secondary" onClick={() => setShowWizard(true)}>
               Get Started →
             </button>
@@ -1006,6 +1183,7 @@ function MoltbotPanel({ user, showToast }) {
               )}
             </div>
             <span className="step-label">
+              {step === 'name' && 'Name'}
               {step === 'provider' && 'AI'}
               {step === 'channels' && 'Channels'}
               {step === 'payment' && 'Payment'}
@@ -1023,24 +1201,21 @@ function MoltbotPanel({ user, showToast }) {
       {/* Navigation */}
       {!deployedInstance && (
         <div className="wizard-nav">
-          {currentStep > 0 && currentStep !== 2 && (
-            <button className="back-btn" onClick={handleBack}>
-              ← Back
-            </button>
-          )}
-          {currentStep === 2 && (
+          {currentStep > 0 && (
             <button className="back-btn" onClick={handleBack}>
               ← Back
             </button>
           )}
           <div className="nav-spacer" />
-          {currentStep < 2 && (
+          {/* Steps 0-2 (Name, AI, Channels): show Continue */}
+          {currentStep < 3 && (
             <button className="next-btn" onClick={handleNext}>
               Continue →
             </button>
           )}
-          {/* Payment step has its own button in the content */}
-          {currentStep === 3 && (
+          {/* Step 3 (Payment): has its own button in the content */}
+          {/* Step 4 (Deploy): show Deploy button */}
+          {currentStep === 4 && (
             <button
               className="deploy-btn"
               onClick={handleDeploy}
@@ -1052,7 +1227,7 @@ function MoltbotPanel({ user, showToast }) {
                   Deploying...
                 </>
               ) : (
-                '🚀 Deploy OpenClaw'
+                '🚀 Deploy Agent'
               )}
             </button>
           )}
@@ -1072,6 +1247,52 @@ function MoltbotPanel({ user, showToast }) {
               showToast={showToast}
               onClose={() => setSkillsInstance(null)}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Buy More Messages Modal */}
+      {showBuyModal && (
+        <div className="buy-modal-overlay" onClick={() => setShowBuyModal(false)}>
+          <div className="buy-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowBuyModal(false)}>×</button>
+            <h3 className="buy-modal-title">Buy More Messages</h3>
+            <p className="buy-modal-desc">
+              Add extra Claude Opus messages to your monthly allowance. 
+              Bonus messages don't expire until used.
+            </p>
+
+            {usage && (
+              <div className="buy-modal-usage">
+                <span>Current: {usage.used}/{usage.total} used</span>
+                <span>{usage.remaining} remaining</span>
+              </div>
+            )}
+
+            <div className="packs-grid">
+              {messagePacks.map(pack => (
+                <div key={pack.id} className={`pack-card ${pack.popular ? 'popular' : ''}`}>
+                  {pack.popular && <span className="pack-popular-badge">Best Value</span>}
+                  <h4 className="pack-name">{pack.name}</h4>
+                  <p className="pack-desc">{pack.description}</p>
+                  <div className="pack-price">${pack.price}</div>
+                  <button
+                    className="pack-buy-btn"
+                    onClick={() => handleBuyPack(pack.id)}
+                    disabled={buyingPackId === pack.id}
+                  >
+                    {buyingPackId === pack.id ? 'Processing...' : 'Buy Now'}
+                  </button>
+                </div>
+              ))}
+              {messagePacks.length === 0 && (
+                <div className="packs-loading">Loading packs...</div>
+              )}
+            </div>
+
+            <p className="buy-modal-note">
+              Secure payment via Stripe. Messages are added instantly after purchase.
+            </p>
           </div>
         </div>
       )}

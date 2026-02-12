@@ -19,6 +19,7 @@ app.use(cors({
     'http://localhost:5175',
     'http://localhost:5176',
     'http://localhost:5177',
+    'http://localhost:8081',
     'https://primis-provider.vercel.app',
     'https://primis-landing.vercel.app',
     'https://primis-ai-builder.vercel.app',
@@ -178,6 +179,7 @@ import moltbotRoutes from './routes/moltbot.js'
 import bobRoutes from './routes/bob.js'
 import skillsRoutes from './routes/skills.js'
 import anthropicProxyRoutes from './routes/anthropic-proxy.js'
+import chatRoutes from './routes/chat.js'
 import { startScheduler, stopScheduler, getSchedulerStatus, triggerDistribution, getVaultState } from './yield-scheduler.js'
 
 app.use('/api/auth', authRoutes)
@@ -197,6 +199,7 @@ app.use('/api/moltbot', moltbotRoutes)
 app.use('/api/bob', bobRoutes)
 app.use('/api/skills', skillsRoutes)
 app.use('/api/anthropic-proxy', anthropicProxyRoutes)
+app.use('/api/chat', chatRoutes)
 
 // =====================
 // SCHEDULER ENDPOINTS

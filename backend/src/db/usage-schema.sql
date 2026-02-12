@@ -1,74 +1,84 @@
--- =============================================
--- Usage Logs Schema for Serverless Inference
--- =============================================
--- Run this in Supabase SQL Editor
+-- ============================================================================
+-- USAGE TRACKING SCHEMA
+-- Tracks AI message usage per user for billing (200 msgs/month @ $30/mo)
+-- ============================================================================
 
--- Usage logs table - tracks all serverless usage
-CREATE TABLE IF NOT EXISTS usage_logs (
+-- Message log: one row per AI request
+CREATE TABLE IF NOT EXISTS usage_messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  privy_id TEXT NOT NULL,
-  service TEXT NOT NULL,           -- 'text-generation', 'image-generation', 'audio-transcription'
-  model TEXT NOT NULL,             -- 'llama-3-8b', 'llama-3-70b', 'sdxl', 'whisper-large'
-  input_tokens INTEGER DEFAULT 0,  -- For text: input tokens
-  output_tokens INTEGER DEFAULT 0, -- For text: output tokens
-  input_size INTEGER DEFAULT 0,    -- For audio: bytes
-  output_size INTEGER DEFAULT 0,   -- For images: bytes
-  duration_seconds NUMERIC(10, 2) DEFAULT 0, -- For audio: duration in seconds
-  cost NUMERIC(10, 6) NOT NULL,    -- Actual cost charged
-  duration_ms INTEGER DEFAULT 0,   -- Processing time in ms
-  status TEXT DEFAULT 'completed', -- 'completed', 'failed'
-  error_message TEXT,
-  metadata JSONB DEFAULT '{}',     -- Additional data (prompts, settings, etc.)
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  user_id TEXT NOT NULL,
+  instance_id UUID REFERENCES moltbot_instances(id) ON DELETE SET NULL,
+  model TEXT DEFAULT 'claude-opus-4',
+  tokens_input INTEGER DEFAULT 0,
+  tokens_output INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Index for user lookups
-CREATE INDEX IF NOT EXISTS idx_usage_logs_privy_id ON usage_logs(privy_id);
-CREATE INDEX IF NOT EXISTS idx_usage_logs_created_at ON usage_logs(created_at);
-CREATE INDEX IF NOT EXISTS idx_usage_logs_service ON usage_logs(service);
+-- Fast lookup: count messages per user per month
+CREATE INDEX IF NOT EXISTS idx_usage_messages_user_month 
+  ON usage_messages (user_id, created_at);
 
--- Enable RLS
-ALTER TABLE usage_logs ENABLE ROW LEVEL SECURITY;
+-- Fast lookup: messages per instance
+CREATE INDEX IF NOT EXISTS idx_usage_messages_instance
+  ON usage_messages (instance_id, created_at);
 
--- Policy: users can only see their own usage
-CREATE POLICY "Users can view own usage" ON usage_logs
-  FOR SELECT USING (auth.uid()::text = privy_id OR privy_id = current_setting('app.current_user', true));
+-- User quotas: monthly limits and bonus messages
+CREATE TABLE IF NOT EXISTS usage_quotas (
+  user_id TEXT PRIMARY KEY,
+  monthly_limit INTEGER NOT NULL DEFAULT 200,
+  bonus_messages INTEGER NOT NULL DEFAULT 0,
+  period_start TIMESTAMPTZ DEFAULT date_trunc('month', NOW()),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- Policy: system can insert usage logs
-CREATE POLICY "System can insert usage" ON usage_logs
-  FOR INSERT WITH CHECK (true);
+-- Message packs purchased: audit trail
+CREATE TABLE IF NOT EXISTS usage_purchases (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL,
+  messages_count INTEGER NOT NULL,
+  amount_usd NUMERIC(10,2) NOT NULL,
+  stripe_session_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- =============================================
--- Usage Summary View
--- =============================================
+CREATE INDEX IF NOT EXISTS idx_usage_purchases_user
+  ON usage_purchases (user_id, created_at);
 
-CREATE OR REPLACE VIEW usage_summary AS
-SELECT 
-  privy_id,
-  service,
-  model,
-  COUNT(*) as request_count,
-  SUM(cost) as total_cost,
-  SUM(input_tokens) as total_input_tokens,
-  SUM(output_tokens) as total_output_tokens,
-  AVG(duration_ms) as avg_duration_ms,
-  DATE_TRUNC('day', created_at) as date
-FROM usage_logs
-GROUP BY privy_id, service, model, DATE_TRUNC('day', created_at);
+-- ============================================================================
+-- HELPER FUNCTIONS
+-- ============================================================================
 
--- =============================================
--- Sample queries for analytics
--- =============================================
+-- Function: Get user's message count for current month
+CREATE OR REPLACE FUNCTION get_monthly_message_count(p_user_id TEXT)
+RETURNS INTEGER AS $$
+  SELECT COALESCE(COUNT(*)::INTEGER, 0)
+  FROM usage_messages
+  WHERE user_id = p_user_id
+    AND created_at >= date_trunc('month', NOW());
+$$ LANGUAGE sql STABLE;
 
--- Get user's total spend by service
--- SELECT service, SUM(cost) as total_spend 
--- FROM usage_logs 
--- WHERE privy_id = 'user123' 
--- GROUP BY service;
-
--- Get daily usage for a user
--- SELECT DATE_TRUNC('day', created_at) as day, COUNT(*) as requests, SUM(cost) as cost
--- FROM usage_logs
--- WHERE privy_id = 'user123'
--- GROUP BY DATE_TRUNC('day', created_at)
--- ORDER BY day DESC;
+-- Function: Get user's remaining messages
+CREATE OR REPLACE FUNCTION get_remaining_messages(p_user_id TEXT)
+RETURNS INTEGER AS $$
+  SELECT 
+    COALESCE(q.monthly_limit, 200) + COALESCE(q.bonus_messages, 0) 
+    - COALESCE((
+      SELECT COUNT(*)::INTEGER 
+      FROM usage_messages 
+      WHERE user_id = p_user_id 
+        AND created_at >= date_trunc('month', NOW())
+    ), 0)
+  FROM usage_quotas q
+  WHERE q.user_id = p_user_id
+  UNION ALL
+  -- Default if no quota row exists: 200 - count
+  SELECT 200 - COALESCE((
+    SELECT COUNT(*)::INTEGER 
+    FROM usage_messages 
+    WHERE user_id = p_user_id 
+      AND created_at >= date_trunc('month', NOW())
+  ), 0)
+  WHERE NOT EXISTS (SELECT 1 FROM usage_quotas WHERE user_id = p_user_id)
+  LIMIT 1;
+$$ LANGUAGE sql STABLE;

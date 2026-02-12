@@ -323,17 +323,19 @@ async function deployToRailway(instanceId, name, aiProvider, channels) {
   } catch (error) {
     console.error(`Railway deployment error for ${instanceId}:`, error)
     
+    const errorMsg = error.message || 'Unknown deployment error'
+    
     // Update status to failed
     await query(
       `UPDATE moltbot_instances SET status = 'failed', error_message = $1 WHERE id = $2`,
-      [error.message, instanceId]
+      [errorMsg, instanceId]
     )
 
-    // Log failure
+    // Log failure with full stack
     await query(
       `INSERT INTO moltbot_deployment_logs (instance_id, event_type, message, metadata)
        VALUES ($1, 'error', 'Deployment failed', $2)`,
-      [instanceId, JSON.stringify({ error: error.message })]
+      [instanceId, JSON.stringify({ error: errorMsg, stack: error.stack?.substring(0, 500) })]
     )
   }
 }
@@ -365,7 +367,16 @@ router.get('/instances', requireAuth, async (req, res) => {
       if (['building', 'deploying', 'pending'].includes(row.status) && row.railway_service_id) {
         try {
           const railwayStatus = await RailwayProvider.getServiceStatus(row.railway_service_id)
-          if (railwayStatus && railwayStatus !== row.status) {
+          
+          if (railwayStatus === null) {
+            // Service not found on Railway — mark as failed
+            console.warn(`Instance ${row.id} (${row.name}): Railway service not found, marking as failed`)
+            await query(
+              `UPDATE moltbot_instances SET status = 'failed', error_message = 'Railway service no longer exists' WHERE id = $1`,
+              [row.id]
+            )
+            currentStatus = 'failed'
+          } else if (railwayStatus !== row.status) {
             // Update database with new status
             await query(
               `UPDATE moltbot_instances SET status = $1, deployed_at = CASE WHEN $1 = 'running' THEN NOW() ELSE deployed_at END WHERE id = $2`,
@@ -375,6 +386,20 @@ router.get('/instances', requireAuth, async (req, res) => {
           }
         } catch (err) {
           console.warn(`Failed to sync status for instance ${row.id}:`, err.message)
+        }
+        
+        // Detect stale builds — if stuck in building/deploying for > 30 minutes, mark as failed
+        if (['building', 'deploying', 'pending'].includes(currentStatus)) {
+          const createdAt = new Date(row.deployed_at || row.created_at)
+          const minutesElapsed = (Date.now() - createdAt.getTime()) / 60000
+          if (minutesElapsed > 30) {
+            console.warn(`Instance ${row.id} (${row.name}): Stuck in '${currentStatus}' for ${Math.round(minutesElapsed)}min, marking as failed`)
+            await query(
+              `UPDATE moltbot_instances SET status = 'failed', error_message = $1 WHERE id = $2`,
+              [`Build timed out after ${Math.round(minutesElapsed)} minutes`, row.id]
+            )
+            currentStatus = 'failed'
+          }
         }
       }
       

@@ -42,6 +42,32 @@ export const CREDIT_PACKAGES = [
   }
 ]
 
+// Message packs (one-time purchases to add bonus messages)
+export const MESSAGE_PACKS = [
+  {
+    id: 'messages_50',
+    name: '50 Messages',
+    messages: 50,
+    price: 500, // $5.00
+    description: 'Quick top-up'
+  },
+  {
+    id: 'messages_200',
+    name: '200 Messages',
+    messages: 200,
+    price: 1500, // $15.00
+    popular: true,
+    description: 'Best value — like getting another month'
+  },
+  {
+    id: 'messages_500',
+    name: '500 Messages',
+    messages: 500,
+    price: 3000, // $30.00
+    description: 'Power user pack'
+  }
+]
+
 // Verify Stripe connection
 export async function verifyStripeConnection() {
   if (!stripe) return false
