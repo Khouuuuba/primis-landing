@@ -278,15 +278,9 @@ async function deployToRailway(instanceId, name, aiProvider, channels) {
       console.log('Injecting BRAVE_API_KEY for web search')
     }
 
-    // Override model to avoid Opus rate limits (30k tokens/min)
-    // Sonnet has 80k tokens/min and is better suited for chat workloads
-    if (aiProvider === 'anthropic') {
-      envVars.SMALL_ANTHROPIC_MODEL = 'claude-sonnet-4-20250514'
-      envVars.LARGE_ANTHROPIC_MODEL = 'claude-sonnet-4-20250514'
-      envVars.ANTHROPIC_SMALL_MODEL = 'claude-sonnet-4-20250514'
-      envVars.ANTHROPIC_LARGE_MODEL = 'claude-sonnet-4-20250514'
-      console.log('Model override: Using claude-sonnet-4 instead of opus (rate limit mitigation)')
-    }
+    // Note: Model selection is handled by the clawdbot framework.
+    // The framework ignores OPENCLAW_MODEL / SMALL_ANTHROPIC_MODEL env vars
+    // and uses its own default (currently Opus). Do not override.
 
     // Deploy to Railway
     const deployment = await RailwayProvider.deployMoltbot({
@@ -550,15 +544,8 @@ router.post('/instances/:id/restart', requireAuth, async (req, res) => {
       console.log('Restart: Injecting BRAVE_API_KEY for web search')
     }
 
-    // Override model — OPENCLAW_MODEL is what the start.sh actually reads
-    if (instance.ai_provider === 'anthropic') {
-      updatedVars.OPENCLAW_MODEL = 'anthropic/claude-sonnet-4-20250514'
-      updatedVars.SMALL_ANTHROPIC_MODEL = 'claude-sonnet-4-20250514'
-      updatedVars.LARGE_ANTHROPIC_MODEL = 'claude-sonnet-4-20250514'
-      updatedVars.ANTHROPIC_SMALL_MODEL = 'claude-sonnet-4-20250514'
-      updatedVars.ANTHROPIC_LARGE_MODEL = 'claude-sonnet-4-20250514'
-      console.log('Restart: Model override to claude-sonnet-4-20250514')
-    }
+    // Note: Model selection is handled by the clawdbot framework.
+    // Do NOT override — the framework ignores OPENCLAW_MODEL and uses its own default.
 
     // Update Railway service environment variables
     await RailwayProvider.setServiceVariables({

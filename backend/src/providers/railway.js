@@ -442,14 +442,6 @@ async function deployMoltbot({ name, envVars }) {
       CLAWDBOT_PREFER_PNPM: '1',
       NODE_OPTIONS: '--max-old-space-size=1536',
       
-      // Model override — OPENCLAW_MODEL is what the moltbot start.sh reads
-      // Also set the framework-specific vars as fallback
-      OPENCLAW_MODEL: 'anthropic/claude-sonnet-4-20250514',
-      SMALL_ANTHROPIC_MODEL: 'claude-sonnet-4-20250514',
-      LARGE_ANTHROPIC_MODEL: 'claude-sonnet-4-20250514',
-      ANTHROPIC_SMALL_MODEL: 'claude-sonnet-4-20250514',
-      ANTHROPIC_LARGE_MODEL: 'claude-sonnet-4-20250514',
-      
       // Public URL — needed for webhook registration (Telegram, etc.)
       ...(domain ? { RAILWAY_PUBLIC_DOMAIN: domain, PUBLIC_URL: `https://${domain}` } : {}),
       
@@ -546,6 +538,50 @@ async function getServiceStatus(serviceId) {
   } catch (error) {
     console.warn(`Failed to get service status for ${serviceId}:`, error.message)
     return null
+  }
+}
+
+/**
+ * Get the variable names (NOT values) set on a service for diagnostics
+ */
+async function getServiceVariables(serviceId, environmentId, projectId) {
+  const q = `
+    query Variables($projectId: String!, $environmentId: String!, $serviceId: String!) {
+      variables(projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId)
+    }
+  `
+  const data = await railwayQuery(q, { 
+    projectId: projectId || getProjectId(), 
+    environmentId, 
+    serviceId 
+  })
+  // variables returns a JSON object { KEY: VALUE }
+  // We only return the KEY names for security
+  const vars = data.variables || {}
+  return Object.keys(vars)
+}
+
+/**
+ * Get deployment logs (last N lines)
+ */
+async function getDeploymentLogs(deploymentId, limit = 100) {
+  const q = `
+    query DeploymentLogs($deploymentId: String!, $limit: Int) {
+      deploymentLogs(deploymentId: $deploymentId, limit: $limit) {
+        ... on Log {
+          message
+          timestamp
+          severity
+        }
+      }
+    }
+  `
+  try {
+    const data = await railwayQuery(q, { deploymentId, limit })
+    return data.deploymentLogs || []
+  } catch (err) {
+    console.warn('Failed to fetch deployment logs:', err.message)
+    return []
   }
 }
 
