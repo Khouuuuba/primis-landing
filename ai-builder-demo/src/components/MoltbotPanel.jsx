@@ -269,13 +269,30 @@ function MoltbotPanel({ user, showToast }) {
     return Object.keys(newErrors).length === 0
   }
 
+  // F2: Persist formData to localStorage whenever it changes (survives redirects)
+  useEffect(() => {
+    if (formData.instanceName || formData.aiProvider || Object.keys(formData.channels).length > 0) {
+      localStorage.setItem('openclawFormData', JSON.stringify(formData))
+    }
+  }, [formData])
+
   const handleNext = () => {
     if (validateStep(currentStep)) {
+      // If user already paid, skip the payment step (3) → go straight to deploy (4)
+      if (currentStep === 2 && isPaid) {
+        setCurrentStep(4)
+        return
+      }
       setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1))
     }
   }
 
   const handleBack = () => {
+    // If going back from deploy (4) and already paid, skip payment step → go to channels (2)
+    if (currentStep === 4 && isPaid) {
+      setCurrentStep(2)
+      return
+    }
     setCurrentStep(prev => Math.max(prev - 1, 0))
   }
 
@@ -365,6 +382,9 @@ function MoltbotPanel({ user, showToast }) {
       setDeployedInstance(data.instance)
       showToast?.('OpenClaw deployment started!', 'success')
       
+      // F2: Only clear formData from localStorage after successful deploy
+      localStorage.removeItem('openclawFormData')
+      
       // Add to instances list
       setInstances(prev => [data.instance, ...prev])
 
@@ -385,11 +405,38 @@ function MoltbotPanel({ user, showToast }) {
     })
     setErrors({})
     setDeployedInstance(null)
+    localStorage.removeItem('openclawFormData')
   }
 
   // Payment state
   const [isPaid, setIsPaid] = useState(false)
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true)
+
+  // F1: Check subscription status on mount — if user already paid, skip payment step
+  useEffect(() => {
+    if (!user?.id) { setSubscriptionLoading(false); return }
+    const checkSubscription = async () => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/payments/openclaw-subscription`,
+          { headers: { 'x-privy-id': user?.id } }
+        )
+        if (response.ok) {
+          const data = await response.json()
+          if (data.hasSubscription) {
+            setIsPaid(true)
+            console.log('[MoltbotPanel] Active subscription detected — payment step will be skipped')
+          }
+        }
+      } catch (err) {
+        console.error('Subscription check failed:', err)
+      } finally {
+        setSubscriptionLoading(false)
+      }
+    }
+    checkSubscription()
+  }, [user?.id])
 
   // Render step content
   const renderStepContent = () => {
@@ -704,23 +751,26 @@ function MoltbotPanel({ user, showToast }) {
     }
   }
 
-  // Check for payment success on mount (after Stripe redirect)
+  // F2: Always restore formData from localStorage on mount (survives redirects, remounts, refreshes)
+  useEffect(() => {
+    const savedFormData = localStorage.getItem('openclawFormData')
+    if (savedFormData) {
+      try {
+        const parsed = JSON.parse(savedFormData)
+        setFormData(parsed)
+        console.log('[MoltbotPanel] Restored formData from localStorage:', parsed.instanceName)
+      } catch (e) {
+        console.error('Failed to parse saved form data:', e)
+      }
+    }
+  }, [])
+
+  // Check for payment success/cancellation on mount (after Stripe redirect)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const openclawStatus = params.get('openclaw')
     
     if (openclawStatus === 'success') {
-      // Restore form data from localStorage (survives Stripe redirect)
-      const savedFormData = localStorage.getItem('openclawFormData')
-      if (savedFormData) {
-        try {
-          const parsed = JSON.parse(savedFormData)
-          setFormData(parsed)
-        } catch (e) {
-          console.error('Failed to parse saved form data:', e)
-        }
-        localStorage.removeItem('openclawFormData')
-      }
       setIsPaid(true)
       setShowWizard(true)
       setCurrentStep(4) // Go to deploy step
@@ -729,14 +779,6 @@ function MoltbotPanel({ user, showToast }) {
       // Keep tab param so sidebar stays on moltbot
       window.history.replaceState({}, '', window.location.pathname + '?tab=moltbot')
     } else if (openclawStatus === 'cancelled') {
-      // Restore form data so user can retry
-      const savedFormData = localStorage.getItem('openclawFormData')
-      if (savedFormData) {
-        try {
-          setFormData(JSON.parse(savedFormData))
-        } catch (e) { /* ignore */ }
-        // Don't remove — user might retry
-      }
       setShowWizard(true)
       setCurrentStep(3) // Go back to payment step to retry
       showToast?.('Payment cancelled', 'info')
@@ -748,6 +790,27 @@ function MoltbotPanel({ user, showToast }) {
     const enabledChannels = Object.entries(formData.channels)
       .filter(([_, v]) => v.enabled)
       .map(([id]) => CHANNELS[id]?.name)
+
+    // F3: If already paid, show confirmation instead of payment form
+    if (isPaid) {
+      return (
+        <div className="wizard-step">
+          <h3 className="step-title">Subscription Active</h3>
+          <div className="payment-confirmed">
+            <div className="confirmed-badge">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M9 12l2 2 4-4"/>
+              </svg>
+              Already Subscribed — $30/mo
+            </div>
+          </div>
+          <p className="step-description" style={{ textAlign: 'center', marginTop: '1rem' }}>
+            Your subscription is active. Click Continue to deploy your agent.
+          </p>
+        </div>
+      )
+    }
 
     return (
       <div className="wizard-step">
@@ -1202,12 +1265,13 @@ function MoltbotPanel({ user, showToast }) {
           )}
           <div className="nav-spacer" />
           {/* Steps 0-2 (Name, AI, Channels): show Continue */}
-          {currentStep < 3 && (
+          {/* Step 3 (Payment) when already paid: also show Continue to skip to deploy */}
+          {(currentStep < 3 || (currentStep === 3 && isPaid)) && (
             <button className="next-btn" onClick={handleNext}>
               Continue →
             </button>
           )}
-          {/* Step 3 (Payment): has its own button in the content */}
+          {/* Step 3 (Payment) when not paid: has its own button in the content */}
           {/* Step 4 (Deploy): show Deploy button */}
           {currentStep === 4 && (
             <button
